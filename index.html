@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buckley Park College Conservation Drone Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="entry-overlay" id="entryOverlay">
+    <div class="entry-card">
+      <div class="school-brand">
+        <img class="school-logo" src="BPC-logo-WordMarkWHITEcond.png" alt="Buckley Park College logo">
+      </div>
+      <p class="eyebrow">Access Portal</p>
+      <h1>Buckley Park College Conservation Drone Lab</h1>
+      <p class="panel-copy">Log in or register before starting. Students can save mission progress, and teachers can review class completion.</p>
+
+      <div class="path-selector auth-mode-selector">
+        <button type="button" class="path-button active" id="showLoginButton">Login</button>
+        <button type="button" class="path-button" id="showRegisterButton">Register</button>
+      </div>
+
+      <div class="path-selector auth-kind-selector">
+        <button type="button" class="path-button active" id="selectStudentButton">Student</button>
+        <button type="button" class="path-button" id="selectTeacherButton">Teacher</button>
+      </div>
+
+      <label class="field-label hidden" for="studentNameInput" id="studentNameLabel">Student Name</label>
+      <input id="studentNameInput" class="hidden" type="text" autocomplete="name" placeholder="Student name">
+
+      <label class="field-label" for="authEmail">Email</label>
+      <input id="authEmail" type="email" autocomplete="username" placeholder="student@example.com">
+
+      <label class="field-label" for="authPassword">Password</label>
+      <input id="authPassword" type="password" autocomplete="current-password" placeholder="Password">
+
+      <div class="button-row auth-actions">
+        <button id="authSubmitButton" type="button">Sign In</button>
+      </div>
+
+      <p id="authFeedbackText" class="panel-copy"></p>
+    </div>
+  </div>
+
+  <div class="app-shell" id="appShell">
+    <header class="app-header">
+      <div class="school-brand">
+        <img class="school-logo" src="BPC-logo-WordMarkWHITEcond.png" alt="Buckley Park College logo">
+      </div>
+      <div class="app-header-copy">
+        <p class="eyebrow">Buckley Park College Conservation Drone Lab</p>
+        <p class="lede">Complete each field role by coding survey flights, collecting habitat samples, photographing wildlife, and earning stars toward conservation badges.</p>
+      </div>
+      <div class="status-pill">
+        <span class="status-dot"></span>
+        Live simulator ready
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <section class="panel account-panel">
+        <div class="panel-heading">
+          <h2>Account</h2>
+          <span id="accountRoleBadge" class="chip chip-calm">Signed out</span>
+        </div>
+        <p id="accountStatusText" class="panel-copy">Sign in as a student to save mission progress, or as a teacher to view class completion data.</p>
+        <div class="button-row auth-actions">
+          <button id="logoutButton" type="button" class="ghost-button hidden">Log Out</button>
+        </div>
+        <div id="teacherAccountPanel" class="teacher-account-panel hidden">
+          <div class="teacher-account-actions">
+            <label class="field-label" for="teacherPasswordInput">New Teacher Password</label>
+            <input id="teacherPasswordInput" class="teacher-password-input" type="text" placeholder="Enter new teacher password">
+            <div class="teacher-action-row">
+              <button id="teacherPasswordButton" type="button" class="secondary-button">Change Teacher Password</button>
+            </div>
+          </div>
+        </div>
+        <div id="studentProgressPanel" class="student-progress hidden">
+          <div class="panel-heading compact-heading">
+            <h3>My Progress</h3>
+            <span id="studentProgressBadge" class="chip chip-calm">0 complete</span>
+          </div>
+          <label class="field-label" for="studentMissionSelect">Select Mission</label>
+          <select id="studentMissionSelect"></select>
+          <div id="studentProgressList" class="checkpoint-list"></div>
+          <div id="certificatePanel" class="certificate-panel hidden">
+            <p class="eyebrow">Awards</p>
+            <h3>Certificates</h3>
+            <p class="panel-copy" id="certificateSummaryText">Certificates unlock as each field role is completed.</p>
+            <p class="panel-copy" id="certificateDateText">Award progress will appear here.</p>
+            <div id="certificateActions" class="certificate-actions"></div>
+          </div>
+        </div>
+
+      </section>
+
+      <section class="panel mission-panel" id="missionPanel">
+        <div class="panel-heading">
+          <h2>Campaign</h2>
+          <span id="missionState" class="chip chip-calm">Waiting</span>
+        </div>
+        <p id="storyText" class="panel-copy">The conservation drone team is waiting for field instructions.</p>
+        <p id="missionText" class="panel-copy">Write code to take off, visit the survey points, collect samples where needed, and land safely.</p>
+        <div class="panel-heading compact-heading">
+          <h3>Field Role</h3>
+          <span id="themeBadge" class="chip">Field Trainee</span>
+        </div>
+        <div class="path-selector" id="pathSelector">
+          <button type="button" class="path-button active" data-level="cadet">Field Trainee</button>
+          <button type="button" class="path-button" data-level="second_officer">Field Ecologist</button>
+          <button type="button" class="path-button" data-level="first_officer">Research Lead</button>
+          <button type="button" class="path-button" data-level="captain">Senior Scientist</button>
+        </div>
+        <div class="mission-meta">
+          <span class="chip" id="missionIndexBadge">Mission 1</span>
+          <span class="chip" id="missionGoalBadge">Survey Run</span>
+        </div>
+        <div class="checkpoint-list" id="checkpointList"></div>
+        <div class="button-row mission-nav">
+          <button id="prevMissionButton" type="button" class="ghost-button">Previous Mission</button>
+          <button id="nextMissionButton" type="button" class="secondary-button">Next Mission</button>
+        </div>
+      </section>
+
+      <section class="panel tips-panel" id="tipsPanel">
+        <div class="panel-heading">
+          <h2>Teaching Notes</h2>
+          <span class="chip">Helpful</span>
+        </div>
+        <p class="panel-copy" id="syntaxNote">The editor accepts one command per line. Distances are in pixels, rotations are in degrees, and each line must end with a semicolon.</p>
+        <p class="panel-copy" id="rankRequirementNote">Field Trainee missions can be solved with direct commands. Later field roles unlock required control structures.</p>
+      </section>
+
+      <section class="panel teacher-panel hidden" id="teacherPanel">
+        <div class="panel-heading">
+          <h2>Teacher Dashboard</h2>
+          <span id="teacherSummaryBadge" class="chip chip-calm">0 students</span>
+        </div>
+        <p class="panel-copy">Teachers can review who has completed each mission and who still needs support.</p>
+        <label class="field-label" for="teacherStudentSelect">Select Student</label>
+        <select id="teacherStudentSelect"></select>
+        <div id="teacherDashboard" class="teacher-dashboard"></div>
+      </section>
+    </aside>
+
+    <main class="main-column" id="mainColumn">
+      <section class="panel simulator-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Canvas Animation</p>
+            <h2>Drone Flight Simulator</h2>
+          </div>
+          <div class="legend">
+            <span><i class="legend-dot launch-pad"></i>Launch pad</span>
+            <span><i class="legend-dot checkpoint"></i>Survey point</span>
+            <span><i class="legend-dot animal-marker"></i>Animal marker</span>
+            <span><i class="legend-dot sensor-zone"></i>Sensor patch</span>
+            <span><i class="legend-dot no-fly"></i>No-fly zone</span>
+          </div>
+        </div>
+
+        <div class="simulator-workspace">
+          <div class="simulator-stage">
+          <canvas id="simCanvas" width="960" height="560" aria-label="Drone programming simulator"></canvas>
+          <div class="hud-card">
+            <div>
+              <span class="hud-label">Position</span>
+              <strong id="positionReadout">x: 120, y: 470</strong>
+            </div>
+            <div>
+              <span class="hud-label">Altitude</span>
+              <strong id="altitudeReadout">0 m</strong>
+            </div>
+            <div>
+              <span class="hud-label">Heading</span>
+              <strong id="headingReadout">0°</strong>
+            </div>
+            <div>
+              <span class="hud-label">Field Role</span>
+              <strong id="hudThemeReadout">Field Trainee</strong>
+            </div>
+          </div>
+          </div>
+
+          <article class="feedback-card simulator-feedback">
+            <div class="panel-heading">
+              <h3>Program Feedback</h3>
+              <span id="feedbackBadge" class="chip chip-calm">Ready</span>
+            </div>
+            <p id="feedbackText" class="feedback-text">Press Run Program to animate the drone.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel editor-panel">
+        <div class="editor-header">
+          <div>
+            <p class="eyebrow">Student Editor</p>
+            <h2>Write Drone Commands</h2>
+          </div>
+          <div class="button-row">
+            <button id="runButton" type="button">Run Program</button>
+            <button id="resetButton" type="button" class="secondary-button">Reset Drone</button>
+            <button id="exampleButton" type="button" class="ghost-button">Load Example</button>
+          </div>
+        </div>
+
+        <label class="editor-label" for="codeEditor">JavaScript commands</label>
+        <textarea id="codeEditor" spellcheck="false">takeOff();
+moveRight(180);
+moveUp(120);
+rotateRight(90);
+moveRight(140);
+moveDown(140);
+land();</textarea>
+      </section>
+
+      <section class="panel commands-panel" id="commandsPanel">
+        <div class="panel-heading">
+          <h2>Command Guide</h2>
+          <span class="chip">Beginner</span>
+        </div>
+        <ul class="command-list">
+          <li><code>takeOff();</code> Lift the drone into the air.</li>
+          <li><code>land();</code> Bring the drone back to the pad.</li>
+          <li><code>moveUp(80);</code> Move north by pixels.</li>
+          <li><code>moveDown(80);</code> Move south by pixels.</li>
+          <li><code>moveLeft(80);</code> Move west by pixels.</li>
+          <li><code>moveRight(80);</code> Move east by pixels.</li>
+          <li><code>rotateLeft(90);</code> Turn anticlockwise.</li>
+          <li><code>rotateRight(90);</code> Turn clockwise.</li>
+          <li><code>wait(1);</code> Hover for seconds.</li>
+          <li><code>takeSample();</code> Land on a coloured sensor patch and collect a habitat land sample.</li>
+          <li><code>takePhoto();</code> Hover above an animal marker and photograph wildlife evidence.</li>
+          <li><code>if (droneIsAirborne) { ... }</code> Run commands only when the condition is true.</li>
+          <li><code>if (sensingColor("grey")) { ... }</code> Run commands when the drone is above a coloured patch.</li>
+          <li><code>for (let i = 0; i &lt; 3; i++) { ... }</code> Repeat a block of commands.</li>
+        </ul>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
