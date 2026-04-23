@@ -50,10 +50,12 @@ const studentProgressPanel = document.querySelector("#studentProgressPanel");
 const studentProgressBadge = document.querySelector("#studentProgressBadge");
 const studentMissionSelect = document.querySelector("#studentMissionSelect");
 const studentProgressList = document.querySelector("#studentProgressList");
+const roleProgressPanel = document.querySelector("#roleProgressPanel");
+const rankCertificatesPanel = document.querySelector("#rankCertificatesPanel");
 const certificatePanel = document.querySelector("#certificatePanel");
-const certificateSummaryText = document.querySelector("#certificateSummaryText");
+const certificateStudentName = document.querySelector("#certificateStudentName");
 const certificateDateText = document.querySelector("#certificateDateText");
-const certificateActions = document.querySelector("#certificateActions");
+const printCertificateButton = document.querySelector("#printCertificateButton");
 const teacherPanel = document.querySelector("#teacherPanel");
 const teacherSummaryBadge = document.querySelector("#teacherSummaryBadge");
 const teacherStudentSelect = document.querySelector("#teacherStudentSelect");
@@ -65,33 +67,28 @@ const DEFAULT_TEACHER_EMAIL = "mg@buckleyparkco.vic.edu.au";
 const DEFAULT_TEACHER_PASSWORD = "password123";
 
 const COMMANDS = new Set([
-  "takeOff", "land", "moveUp", "moveDown", "moveLeft", "moveRight", "rotateLeft", "rotateRight", "wait", "takeSample", "takePhoto",
+  "takeOff", "land", "moveUp", "moveDown", "moveLeft", "moveRight", "rotateLeft", "rotateRight", "wait", "takeSample", "takeLandSample", "takePhoto",
 ]);
-
-const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-let missionAudioContext = null;
-let droneHum = null;
 
 const CAMPAIGNS = {
   cadet: {
-    label: "Field Trainee",
-    title: "Wetland Survey Team",
+    label: "Cadet",
+    title: "Harbour Training Wing",
     droneColor: "#59d7ff",
     rotorColor: "#adf76f",
     sky: ["#153953", "#1d4d6e", "#163448", "#10263a"],
     missions: [
       {
-        title: "Mission 1: Nesting Ground Check",
-        objective: "Take off, visit the first two wetland survey points, photograph the waterbird nest marker, then land back on the field pad.",
-        story: "Dr. Vega needs a gentle first flight over the reed beds to check whether waterbirds are nesting in the marked areas. Capture one waterbird nest photo before returning.",
-        goalLabel: "Nest Survey",
-        photoRequirements: [{ id: "photo-n1-waterbird", animal: "Waterbird Nest", label: "Waterbird Nest Photo", x: 476, y: 287, radius: 34 }],
+        title: "Mission 1: First Lift",
+        objective: "Take off, reach the first two beacons, then land back on the pad.",
+        story: "Instructor Vega opens the hangar doors and asks you to prove the drone can follow a basic route.",
+        goalLabel: "Beacon Warmup",
         launchPad: { x: 90, y: 458, width: 132, height: 58 },
         checkpoints: [
-          { id: "n1-a", name: "Reed Bed Camera Point", x: 320, y: 355, radius: 22 },
-          { id: "n1-b", name: "Nesting Island Camera Point", x: 500, y: 265, radius: 22 },
+          { id: "n1-a", name: "Blue Beacon", x: 320, y: 355, radius: 22 },
+          { id: "n1-b", name: "Bridge Beacon", x: 500, y: 265, radius: 22 },
         ],
-        noFlyZones: [{ x: 620, y: 200, width: 120, height: 220, label: "Bird Rookery" }],
+        noFlyZones: [{ x: 620, y: 200, width: 120, height: 220, label: "Crane" }],
         decorations: [
           { type: "cloud", x: 170, y: 100, size: 0.9 },
           { type: "cloud", x: 710, y: 120, size: 1.1 },
@@ -102,26 +99,24 @@ moveRight(140);
 moveUp(110);
 moveRight(180);
 moveUp(90);
-takePhoto();
 moveDown(180);
 moveLeft(320);
 land();`,
       },
       {
-        title: "Mission 2: Invasive Weed Sweep",
-        objective: "Survey three weed-monitoring markers, photograph the dragonfly habitat marker, and steer around sensitive habitat.",
-        story: "The field team is mapping an outbreak of invasive waterweed and must avoid flying over a nesting exclusion zone. Capture one dragonfly habitat photo for the wetland record.",
-        goalLabel: "Weed Mapping",
-        photoRequirements: [{ id: "photo-n2-dragonfly", animal: "Dragonfly Habitat", label: "Dragonfly Habitat Photo", x: 550, y: 247, radius: 34 }],
+        title: "Mission 2: Dock Sweep",
+        objective: "Sweep across three markers while steering around the stacked cargo zone.",
+        story: "A delivery barge is arriving, so the drone must scan the harbour path without crossing the cargo stack.",
+        goalLabel: "Dock Scan",
         launchPad: { x: 110, y: 430, width: 120, height: 54 },
         checkpoints: [
-          { id: "n2-a", name: "Weed Patch North", x: 250, y: 210, radius: 22 },
-          { id: "n2-b", name: "Weed Patch East", x: 520, y: 185, radius: 22 },
-          { id: "n2-c", name: "Weed Patch South", x: 640, y: 400, radius: 22 },
+          { id: "n2-a", name: "Dock North", x: 250, y: 210, radius: 22 },
+          { id: "n2-b", name: "Dock East", x: 520, y: 185, radius: 22 },
+          { id: "n2-c", name: "Dock South", x: 640, y: 400, radius: 22 },
         ],
         noFlyZones: [
-          { x: 320, y: 250, width: 150, height: 210, label: "Nest Buffer" },
-          { x: 720, y: 125, width: 110, height: 150, label: "Ranger Blind" },
+          { x: 320, y: 250, width: 150, height: 210, label: "Cargo" },
+          { x: 720, y: 125, width: 110, height: 150, label: "Tower" },
         ],
         decorations: [
           { type: "cloud", x: 140, y: 126, size: 0.8 },
@@ -132,7 +127,6 @@ land();`,
 moveUp(210);
 moveRight(140);
 moveRight(240);
-takePhoto();
 moveDown(210);
 moveRight(120);
 wait(1);
@@ -140,21 +134,20 @@ moveLeft(500);
 land();`,
       },
       {
-        title: "Mission 3: Frog Call Transect",
-        objective: "Visit four acoustic recorder points, photograph the frog habitat marker, then return to base.",
-        story: "After rain, the ecology team needs a quick transect to confirm which frog recorders are active around the wetland. Capture a frog habitat photo while the drone is above the recorder line.",
-        goalLabel: "Call Survey",
-        photoRequirements: [{ id: "photo-n3-frog", animal: "Frog Habitat", label: "Frog Habitat Photo", x: 673, y: 238, radius: 34 }],
+        title: "Mission 3: Signal Run",
+        objective: "Collect four harbour signal points before returning to base.",
+        story: "The lighthouse relay is being calibrated and the cadet drone must touch each signal buoy.",
+        goalLabel: "Signal Net",
         launchPad: { x: 92, y: 444, width: 126, height: 56 },
         checkpoints: [
-          { id: "n3-a", name: "Recorder West", x: 230, y: 390, radius: 22 },
-          { id: "n3-b", name: "Recorder North", x: 360, y: 210, radius: 22 },
-          { id: "n3-c", name: "Recorder East", x: 675, y: 205, radius: 22 },
-          { id: "n3-d", name: "Recorder South", x: 770, y: 380, radius: 22 },
+          { id: "n3-a", name: "Signal West", x: 230, y: 390, radius: 22 },
+          { id: "n3-b", name: "Signal North", x: 360, y: 210, radius: 22 },
+          { id: "n3-c", name: "Signal East", x: 610, y: 210, radius: 22 },
+          { id: "n3-d", name: "Signal South", x: 770, y: 380, radius: 22 },
         ],
         noFlyZones: [
-          { x: 300, y: 275, width: 120, height: 165, label: "Tall Reeds" },
-          { x: 545, y: 110, width: 105, height: 155, label: "Old Gum" },
+          { x: 300, y: 275, width: 120, height: 165, label: "Dock Crane" },
+          { x: 660, y: 110, width: 105, height: 155, label: "Mast" },
         ],
         decorations: [
           { type: "cloud", x: 170, y: 90, size: 0.9 },
@@ -166,7 +159,6 @@ moveUp(54);
 moveRight(130);
 moveUp(180);
 moveRight(250);
-takePhoto();
 moveRight(160);
 moveDown(170);
 moveLeft(678);
@@ -174,22 +166,21 @@ moveDown(54);
 land();`,
       },
       {
-        title: "Mission 4: Wetland Baseline Run",
-        objective: "Finish the full wetland route, visit every survey point, photograph the pelican roost marker, and return for a clean landing.",
-        story: "The baseline survey is almost complete. Dr. Vega wants one careful run that avoids wildlife disturbance zones and records one pelican roost photo.",
-        goalLabel: "Baseline Map",
-        photoRequirements: [{ id: "photo-n4-pelican", animal: "Pelican Roost", label: "Pelican Roost Photo", x: 755, y: 279, radius: 34 }],
+        title: "Mission 4: Graduation Run",
+        objective: "Finish the full harbour route, hit every beacon, and return for a clean landing.",
+        story: "The cadet badge is one flight away. Vega wants a full mission flown without drifting into restricted airspace.",
+        goalLabel: "Final Circuit",
         launchPad: { x: 90, y: 445, width: 130, height: 58 },
         checkpoints: [
-          { id: "n3-a", name: "Reed Edge Plot", x: 250, y: 360, radius: 22 },
-          { id: "n3-b", name: "Open Water Plot", x: 450, y: 170, radius: 22 },
-          { id: "n3-c", name: "Mudflat Plot", x: 690, y: 260, radius: 22 },
-          { id: "n3-d", name: "Rookery Boundary", x: 760, y: 430, radius: 22 },
+          { id: "n3-a", name: "Beacon One", x: 250, y: 360, radius: 22 },
+          { id: "n3-b", name: "Beacon Two", x: 450, y: 170, radius: 22 },
+          { id: "n3-c", name: "Beacon Three", x: 690, y: 260, radius: 22 },
+          { id: "n3-d", name: "Beacon Four", x: 760, y: 430, radius: 22 },
         ],
         noFlyZones: [
-          { x: 325, y: 235, width: 110, height: 210, label: "Nest Buffer" },
-          { x: 560, y: 115, width: 110, height: 170, label: "Tree Hollow" },
-          { x: 820, y: 315, width: 90, height: 170, label: "Ranger Camp" },
+          { x: 325, y: 235, width: 110, height: 210, label: "Crane" },
+          { x: 560, y: 115, width: 110, height: 170, label: "Signal Mast" },
+          { x: 820, y: 315, width: 90, height: 170, label: "Fuel Stack" },
         ],
         decorations: [
           { type: "cloud", x: 190, y: 100, size: 0.9 },
@@ -203,7 +194,6 @@ moveRight(200);
 moveUp(190);
 moveRight(240);
 moveDown(90);
-takePhoto();
 moveDown(170);
 moveLeft(670);
 land();`,
@@ -211,32 +201,28 @@ land();`,
     ],
   },
   second_officer: {
-    label: "Field Ecologist",
-    title: "Creek Health Team",
+    label: "Second Officer",
+    title: "Canyon Rescue Unit",
     droneColor: "#9fe7ff",
     rotorColor: "#e0ff7d",
     sky: ["#24384d", "#37556d", "#2c3f43", "#1b2c34"],
     missions: [
       {
-        title: "Mission 1: Erosion Bank Sample",
-        objective: "Fly from the creek entrance to the monitoring plots, photograph the platypus burrow marker, land on the grey bank patch to take a soil sample, then continue safely.",
-        story: "A recent storm exposed creek-bank sediment, and the conservation scientist needs a grey soil sample plus a platypus burrow photo near the monitoring plots.",
-        goalLabel: "Bank Survey",
-        sampleRequirements: [{ color: "grey", label: "Eroded Bank Soil Sample" }],
-        colorZones: [
-          { color: "grey", label: "Grey Soil Patch", x: 110, y: 315, width: 120, height: 85, fill: "rgba(170, 180, 191, 0.32)", stroke: "#b8c1ca" },
-        ],
-        photoRequirements: [{ id: "photo-c1-platypus", animal: "Platypus Burrow", label: "Platypus Burrow Photo", x: 390, y: 232, radius: 34 }],
+        title: "Mission 1: Ridge Supply Drop",
+        objective: "Fly from the canyon entrance to the field clinic, land on the grey rock patch to take a sample, then continue safely.",
+        story: "Medic drones are needed at the ridge clinic before sunset, and command also wants a sample from the grey rock shelf.",
+        goalLabel: "Clinic Route",
+        sampleRequirements: [{ color: "grey", label: "Grey Rock Sample" }],
         launchPad: { x: 70, y: 420, width: 120, height: 54 },
         checkpoints: [
-          { id: "c1-a", name: "Upstream Photo Plot", x: 220, y: 305, radius: 22 },
-          { id: "c1-b", name: "Erosion Face", x: 610, y: 185, radius: 22 },
-          { id: "c1-c", name: "Downstream Photo Plot", x: 810, y: 330, radius: 22 },
+          { id: "c1-a", name: "Scout Post", x: 220, y: 305, radius: 22 },
+          { id: "c1-b", name: "Clinic Roof", x: 610, y: 185, radius: 22 },
+          { id: "c1-c", name: "Landing Marker", x: 810, y: 330, radius: 22 },
         ],
         noFlyZones: [
-          { x: 250, y: 85, width: 120, height: 250, label: "Canopy Gap" },
-          { x: 470, y: 250, width: 145, height: 220, label: "Steep Bank" },
-          { x: 710, y: 90, width: 110, height: 150, label: "Old Nest Tree" },
+          { x: 250, y: 85, width: 120, height: 250, label: "Cliff A" },
+          { x: 470, y: 250, width: 145, height: 220, label: "Cliff B" },
+          { x: 710, y: 90, width: 110, height: 150, label: "Cliff C" },
         ],
         decorations: [
           { type: "mountain", x: 160, y: 470, width: 210, height: 120 },
@@ -251,7 +237,6 @@ takeSample();
 takeOff();
 moveRight(170);
 moveUp(120);
-takePhoto();
 moveRight(200);
 moveDown(145);
 moveLeft(460);
@@ -259,25 +244,21 @@ moveLeft(460);
 land();`,
       },
       {
-        title: "Mission 2: Water Quality Run",
-        objective: "Map four creek markers, photograph the kingfisher perch marker, land on the blue patch to take a creek-edge land sample, then lift off and finish the route.",
-        story: "After heavy rain, bank habitat may need repair. The field team needs a blue creek-edge land sample and one kingfisher perch photo before the drone returns.",
-        goalLabel: "Water Survey",
-        sampleRequirements: [{ color: "blue", label: "Creek Edge Land Sample" }],
-        colorZones: [
-          { color: "blue", label: "Blue Water Patch", x: 170, y: 310, width: 120, height: 85, fill: "rgba(89, 215, 255, 0.24)", stroke: "#72dfff" },
-        ],
-        photoRequirements: [{ id: "photo-c2-kingfisher", animal: "Kingfisher Perch", label: "Kingfisher Perch Photo", x: 523, y: 248, radius: 34 }],
+        title: "Mission 2: Flood Survey",
+        objective: "Map four flood markers, land on the blue patch to take a water sample, then lift off and finish the route.",
+        story: "Storm water is rising through the lower canyon, and the rescue team needs a blue-channel water sample before the drone returns.",
+        goalLabel: "Survey Sweep",
+        sampleRequirements: [{ color: "blue", label: "Blue Water Sample" }],
         launchPad: { x: 130, y: 455, width: 126, height: 56 },
         checkpoints: [
-          { id: "c2-a", name: "Pool A", x: 300, y: 390, radius: 22 },
-          { id: "c2-b", name: "Riffle B", x: 460, y: 220, radius: 22 },
-          { id: "c2-c", name: "Pool C", x: 690, y: 210, radius: 22 },
-          { id: "c2-d", name: "Outflow D", x: 800, y: 390, radius: 22 },
+          { id: "c2-a", name: "Marker A", x: 300, y: 390, radius: 22 },
+          { id: "c2-b", name: "Marker B", x: 460, y: 220, radius: 22 },
+          { id: "c2-c", name: "Marker C", x: 690, y: 210, radius: 22 },
+          { id: "c2-d", name: "Marker D", x: 800, y: 390, radius: 22 },
         ],
         noFlyZones: [
-          { x: 355, y: 265, width: 95, height: 205, label: "Snag Habitat" },
-          { x: 565, y: 115, width: 105, height: 210, label: "Bank Nest" },
+          { x: 355, y: 265, width: 95, height: 205, label: "Rock Spire" },
+          { x: 565, y: 115, width: 105, height: 210, label: "Rock Spire" },
         ],
         decorations: [
           { type: "river", x: 0, y: 470, width: 960, height: 90 },
@@ -285,41 +266,42 @@ land();`,
         ],
         example: `takeOff();
 if (droneIsAirborne) {
-moveRight(170);
-moveUp(65);
-moveRight(160);
+moveRight(100);
+moveUp(93);
 moveUp(170);
-takePhoto();
-moveRight(230);
+moveRight(110);
+moveRight(60);
+land();
+takeSample();
+takeOff();
+moveUp(120);
+moveRight(167);
+moveDown(110);
 moveRight(110);
 moveDown(180);
 wait(1);
-moveLeft(670);
-moveDown(65);
+moveDown(93);
+moveLeft(607);
 }
 land();`,
       },
       {
-        title: "Mission 3: Pollinator Corridor",
-        objective: "Scan the habitat corridor, photograph the native bee marker, land on the gold patch for a pollen-dust sample, then keep flying to the last survey point.",
-        story: "Flowering shrubs are linking two habitat patches, so the scientist needs a native bee photo and a gold pollen-dust sample from the corridor.",
-        goalLabel: "Corridor Check",
-        sampleRequirements: [{ color: "gold", label: "Pollen Dust Sample" }],
-        colorZones: [
-          { color: "gold", label: "Gold Pollen Patch", x: 120, y: 265, width: 120, height: 85, fill: "rgba(255, 215, 140, 0.24)", stroke: "#ffd78c" },
-        ],
-        photoRequirements: [{ id: "photo-c3-bee", animal: "Native Bee", label: "Native Bee Photo", x: 700, y: 232, radius: 34 }],
+        title: "Mission 3: Rope Bridge Search",
+        objective: "Scan the bridge route, land on the gold patch for a dust sample, then keep flying to the last checkpoint.",
+        story: "A search team is moving below the canyon rim and wants both images and a gold dust sample from the bridge shelf.",
+        goalLabel: "Bridge Search",
+        sampleRequirements: [{ color: "gold", label: "Gold Dust Sample" }],
         launchPad: { x: 90, y: 430, width: 120, height: 54 },
         checkpoints: [
-          { id: "c3-a", name: "West Habitat Patch", x: 220, y: 350, radius: 22 },
-          { id: "c3-b", name: "Flowering Shrub Line", x: 410, y: 205, radius: 22 },
-          { id: "c3-c", name: "East Habitat Patch", x: 640, y: 195, radius: 22 },
-          { id: "c3-d", name: "Insect Camera Trap", x: 790, y: 350, radius: 22 },
+          { id: "c3-a", name: "West Ridge", x: 220, y: 350, radius: 22 },
+          { id: "c3-b", name: "Bridge Span", x: 410, y: 205, radius: 22 },
+          { id: "c3-c", name: "East Ridge", x: 640, y: 195, radius: 22 },
+          { id: "c3-d", name: "Supply Camp", x: 790, y: 350, radius: 22 },
         ],
         noFlyZones: [
-          { x: 280, y: 160, width: 95, height: 205, label: "Bee Nest Zone" },
-          { x: 520, y: 250, width: 105, height: 180, label: "Dense Scrub" },
-          { x: 720, y: 120, width: 100, height: 145, label: "Canopy Roost" },
+          { x: 280, y: 160, width: 95, height: 205, label: "Stone Pillar" },
+          { x: 520, y: 250, width: 105, height: 180, label: "Ridge Wall" },
+          { x: 720, y: 120, width: 100, height: 145, label: "Watch Cliff" },
         ],
         decorations: [
           { type: "mountain", x: 120, y: 500, width: 210, height: 130 },
@@ -327,40 +309,39 @@ land();`,
         ],
         example: `takeOff();
 if (droneIsAirborne) {
-moveRight(130);
-moveUp(80);
+moveRight(70);
+moveUp(107);
+moveUp(210);
 moveRight(190);
-moveUp(145);
+moveDown(65);
 moveRight(230);
-takePhoto();
+moveDown(145);
 moveRight(150);
-moveDown(155);
-moveLeft(700);
-moveDown(70);
+land();
+takeSample();
+takeOff();
+moveDown(107);
+moveLeft(640);
 }
 land();`,
       },
       {
-        title: "Mission 4: Nocturnal Mammal Survey",
-        objective: "Complete the creek route in the dark, photograph the bandicoot crossing, land on the grey patch for a track-bed land sample, and bring the drone home.",
-        story: "Camera traps recorded movement after dark. The team needs a drone photo of the bandicoot crossing and a grey land sample from the track bed to plan habitat repairs.",
-        goalLabel: "Night Transect",
-        sampleRequirements: [{ color: "grey", label: "Track Bed Soil Sample" }],
-        colorZones: [
-          { color: "grey", label: "Grey Soil Patch", x: 120, y: 300, width: 120, height: 85, fill: "rgba(170, 180, 191, 0.32)", stroke: "#b8c1ca" },
-        ],
-        photoRequirements: [{ id: "photo-c4-bandicoot", animal: "Bandicoot", label: "Bandicoot Crossing Photo", x: 700, y: 192, radius: 34 }],
+        title: "Mission 4: Night Rescue",
+        objective: "Complete the canyon route in the dark, land on the grey patch for a rescue-site sample, and bring the drone home.",
+        story: "A hiker beacon has started flashing after dark, and the team needs a grey rock sample from the rescue site too.",
+        goalLabel: "Rescue Corridor",
+        sampleRequirements: [{ color: "grey", label: "Rescue Site Sample" }],
         launchPad: { x: 90, y: 430, width: 120, height: 54 },
         checkpoints: [
-          { id: "c3-a", name: "Camera Trap West", x: 245, y: 330, radius: 22 },
-          { id: "c3-b", name: "Burrow Entrance", x: 390, y: 165, radius: 22 },
-          { id: "c3-c", name: "Track Crossing", x: 640, y: 160, radius: 22 },
-          { id: "c3-d", name: "Camera Trap South", x: 770, y: 345, radius: 22 },
+          { id: "c3-a", name: "Beacon West", x: 245, y: 330, radius: 22 },
+          { id: "c3-b", name: "Beacon North", x: 390, y: 165, radius: 22 },
+          { id: "c3-c", name: "Beacon East", x: 640, y: 160, radius: 22 },
+          { id: "c3-d", name: "Beacon South", x: 770, y: 345, radius: 22 },
         ],
         noFlyZones: [
-          { x: 250, y: 105, width: 82, height: 170, label: "Roost Tree" },
-          { x: 465, y: 205, width: 105, height: 215, label: "Dense Habitat" },
-          { x: 725, y: 125, width: 100, height: 150, label: "Burrow Buffer" },
+          { x: 250, y: 105, width: 82, height: 170, label: "Pillar" },
+          { x: 465, y: 205, width: 105, height: 215, label: "Rock Wall" },
+          { x: 725, y: 125, width: 100, height: 150, label: "Cliff Edge" },
         ],
         decorations: [
           { type: "stars", density: 16 },
@@ -369,47 +350,48 @@ land();`,
         ],
         example: `takeOff();
 if (droneIsAirborne) {
-moveRight(155);
+moveRight(95);
 moveUp(100);
+land();
+takeSample();
+takeOff();
+moveUp(270);
 moveRight(145);
-moveUp(165);
+moveDown(78);
 moveRight(250);
-takePhoto();
+moveDown(180);
 moveRight(130);
-moveDown(185);
-moveLeft(680);
-moveDown(100);
+moveDown(112);
+moveLeft(620);
 }
 land();`,
       },
     ],
   },
   first_officer: {
-    label: "Research Lead",
-    title: "Woodland Recovery Team",
+    label: "First Officer",
+    title: "Skyport Relay Division",
     droneColor: "#b8efff",
     rotorColor: "#ffe880",
     sky: ["#2d3950", "#4b5f7f", "#544231", "#2b2731"],
     missions: [
       {
-        title: "Mission 1: Nest Box Inspection",
-        objective: "Visit three nest box trees, photograph the sugar glider nest box, land on the blue patch for a moisture land sample, then return before the survey window closes.",
-        story: "Morning light is ideal for checking nest boxes. The research lead needs a sugar glider photo and a blue moisture sample from the woodland edge to improve habitat plantings.",
-        goalLabel: "Nest Box Check",
-        sampleRequirements: [{ color: "blue", label: "Woodland Moisture Sample" }],
-        colorZones: [
-          { color: "blue", label: "Blue Water Patch", x: 160, y: 340, width: 120, height: 85, fill: "rgba(89, 215, 255, 0.24)", stroke: "#72dfff" },
-        ],
-        photoRequirements: [{ id: "photo-f1-glider", animal: "Sugar Glider", label: "Sugar Glider Nest Box Photo", x: 547, y: 267, radius: 34 }],
+        title: "Mission 1: Relay Alignment",
+        objective: "Touch three relay beacons, take a runway photo, land for a soil check, collect the blue relay sample, then return before the runway window closes.",
+        story: "Skyport control needs a relay alignment check before the commuter drones launch, plus a photo of the runway marker, a land sample, and a blue relay sample from the runway edge.",
+        goalLabel: "Relay Check",
+        sampleRequirements: [{ color: "blue", label: "Blue Relay Sample", x: 547, y: 267, radius: 46 }],
+        landSampleRequirements: [{ color: "brown", label: "Runway Soil Sample", x: 547, y: 267, radius: 46 }],
+        photoRequirements: [{ label: "Runway Marker Photo", x: 547, y: 267, radius: 58 }],
         launchPad: { x: 90, y: 446, width: 124, height: 54 },
         checkpoints: [
-          { id: "f1-a", name: "West Nest Box", x: 235, y: 330, radius: 22 },
-          { id: "f1-b", name: "North Nest Box", x: 470, y: 160, radius: 22 },
-          { id: "f1-c", name: "East Nest Box", x: 760, y: 315, radius: 22 },
+          { id: "f1-a", name: "West Relay", x: 235, y: 330, radius: 22 },
+          { id: "f1-b", name: "North Relay", x: 470, y: 160, radius: 22 },
+          { id: "f1-c", name: "East Relay", x: 760, y: 315, radius: 22 },
         ],
         noFlyZones: [
-          { x: 300, y: 220, width: 115, height: 200, label: "Hollow Tree" },
-          { x: 610, y: 110, width: 105, height: 165, label: "Raptor Nest" },
+          { x: 300, y: 220, width: 115, height: 200, label: "Tower Array" },
+          { x: 610, y: 110, width: 105, height: 165, label: "Runway Mast" },
         ],
         decorations: [
           { type: "cloud", x: 200, y: 95, size: 0.85 },
@@ -421,6 +403,7 @@ moveUp(206);
 takePhoto();
 land();
 takeSample();
+takeLandSample();
 takeOff();
 for (let i = 0; i < 1; i++) {
 wait(1);
@@ -432,26 +415,23 @@ moveDown(51);
 land();`,
       },
       {
-        title: "Mission 2: Eucalypt Health Grid",
-        objective: "Visit four canopy-health sensors, photograph the possum den, land on the grey patch for a bark land sample, then keep the route moving.",
-        story: "Several eucalypts are showing dieback, so the team must check canopy sensors, photograph the possum den, and collect a grey bark sample for habitat improvement work.",
-        goalLabel: "Canopy Grid",
-        sampleRequirements: [{ color: "grey", label: "Bark Condition Sample" }],
-        colorZones: [
-          { color: "grey", label: "Grey Soil Patch", x: 120, y: 300, width: 120, height: 85, fill: "rgba(170, 180, 191, 0.32)", stroke: "#b8c1ca" },
-        ],
-        photoRequirements: [{ id: "photo-f2-possum", animal: "Possum", label: "Possum Den Photo", x: 682, y: 233, radius: 34 }],
+        title: "Mission 2: Runway Window",
+        objective: "Visit four runway sensors, take a photo of the sensor bridge, land on the grey patch for a surface sample, then keep the route moving.",
+        story: "The runway sensors are drifting and first officers must clear the route in sequence while collecting a grey surface sample and photographing the bridge alignment.",
+        goalLabel: "Sensor Weave",
+        sampleRequirements: [{ color: "grey", label: "Grey Surface Sample", x: 452, y: 233, radius: 46 }],
+        photoRequirements: [{ label: "Sensor Bridge Photo", x: 452, y: 233, radius: 58 }],
         launchPad: { x: 110, y: 445, width: 124, height: 56 },
         checkpoints: [
-          { id: "f2-a", name: "Canopy Sensor A", x: 250, y: 390, radius: 22 },
-          { id: "f2-b", name: "Canopy Sensor B", x: 390, y: 205, radius: 22 },
-          { id: "f2-c", name: "Canopy Sensor C", x: 620, y: 205, radius: 22 },
-          { id: "f2-d", name: "Canopy Sensor D", x: 820, y: 360, radius: 22 },
+          { id: "f2-a", name: "Sensor A", x: 250, y: 390, radius: 22 },
+          { id: "f2-b", name: "Sensor B", x: 390, y: 205, radius: 22 },
+          { id: "f2-c", name: "Sensor C", x: 620, y: 205, radius: 22 },
+          { id: "f2-d", name: "Sensor D", x: 820, y: 360, radius: 22 },
         ],
         noFlyZones: [
-          { x: 280, y: 250, width: 90, height: 170, label: "Fallen Limb" },
-          { x: 500, y: 120, width: 100, height: 180, label: "Sensitive Hollow" },
-          { x: 710, y: 250, width: 95, height: 150, label: "Research Blind" },
+          { x: 280, y: 250, width: 90, height: 170, label: "Tower Shadow" },
+          { x: 500, y: 120, width: 100, height: 180, label: "Tower Shadow" },
+          { x: 710, y: 250, width: 95, height: 150, label: "Radar Column" },
         ],
         decorations: [
           { type: "cloud", x: 760, y: 110, size: 0.9 },
@@ -465,8 +445,11 @@ moveRight(140);
 moveUp(55);
 moveRight(140);
 moveUp(185);
-moveRight(230);
 takePhoto();
+land();
+takeSample();
+takeOff();
+moveRight(230);
 moveRight(200);
 moveDown(155);
 moveLeft(710);
@@ -474,26 +457,24 @@ moveDown(70);
 land();`,
       },
       {
-        title: "Mission 3: Fire Scar Recovery",
-        objective: "Climb through the recovery corridor, photograph the wallaby sheltering near regrowth, land on the gold patch for an ash-bed land sample, then return.",
-        story: "A low-intensity burn passed through the woodland. The team needs a wallaby photo and a gold ash-bed sample to track whether habitat is recovering.",
-        goalLabel: "Fire Recovery",
-        sampleRequirements: [{ color: "gold", label: "Ash Bed Sample" }],
-        colorZones: [
-          { color: "gold", label: "Gold Pollen Patch", x: 150, y: 335, width: 120, height: 85, fill: "rgba(255, 215, 140, 0.24)", stroke: "#ffd78c" },
-        ],
-        photoRequirements: [{ id: "photo-f3-wallaby", animal: "Wallaby", label: "Wallaby Regrowth Photo", x: 738, y: 173, radius: 34 }],
+        title: "Mission 3: Thermal Climb",
+        objective: "Climb through the thermal corridor, photograph the heat shimmer, land for a tarmac sample, collect the gold heat sample, then return.",
+        story: "Hot air over the tarmac is distorting readings and the route must be checked mid-climb, including a photo of the heat shimmer, a land sample, and a gold thermal sample.",
+        goalLabel: "Thermal Corridor",
+        sampleRequirements: [{ color: "gold", label: "Gold Heat Sample", x: 303, y: 328, radius: 46 }],
+        landSampleRequirements: [{ color: "brown", label: "Tarmac Land Sample", x: 303, y: 328, radius: 46 }],
+        photoRequirements: [{ label: "Heat Shimmer Photo", x: 303, y: 328, radius: 58 }],
         launchPad: { x: 85, y: 440, width: 125, height: 55 },
         checkpoints: [
-          { id: "f3-a", name: "Regrowth Plot West", x: 240, y: 300, radius: 22 },
-          { id: "f3-b", name: "Ash Bed Plot", x: 430, y: 145, radius: 22 },
-          { id: "f3-c", name: "Seedling Plot East", x: 675, y: 165, radius: 22 },
-          { id: "f3-d", name: "Control Plot South", x: 815, y: 345, radius: 22 },
+          { id: "f3-a", name: "Node West", x: 240, y: 300, radius: 22 },
+          { id: "f3-b", name: "Node Mid", x: 430, y: 145, radius: 22 },
+          { id: "f3-c", name: "Node East", x: 675, y: 165, radius: 22 },
+          { id: "f3-d", name: "Node South", x: 815, y: 345, radius: 22 },
         ],
         noFlyZones: [
-          { x: 315, y: 170, width: 85, height: 205, label: "Smouldering Log" },
-          { x: 540, y: 255, width: 115, height: 175, label: "Unstable Tree" },
-          { x: 760, y: 125, width: 90, height: 145, label: "Wildlife Refuge" },
+          { x: 315, y: 170, width: 85, height: 205, label: "Hot Column" },
+          { x: 540, y: 255, width: 115, height: 175, label: "Fuel Tower" },
+          { x: 760, y: 125, width: 90, height: 145, label: "Signal Frame" },
         ],
         decorations: [
           { type: "cloud", x: 155, y: 85, size: 0.8 },
@@ -506,10 +487,14 @@ wait(1);
 }
 moveRight(155);
 moveUp(140);
+takePhoto();
+land();
+takeSample();
+takeLandSample();
+takeOff();
 moveRight(190);
 moveUp(155);
 moveRight(245);
-takePhoto();
 moveDown(20);
 moveRight(140);
 moveDown(180);
@@ -518,27 +503,24 @@ moveDown(95);
 land();`,
       },
       {
-        title: "Mission 4: Woodland Biodiversity Audit",
-        objective: "Complete the full woodland route, photograph the koala crossing, collect a blue land sample mid-mission, and prove you can lead a field survey.",
-        story: "The biodiversity audit brings together nest checks, animal evidence, canopy photos, and one blue moisture sample for improving the habitat plan.",
-        goalLabel: "Audit Flight",
-        sampleRequirements: [{ color: "blue", label: "Biodiversity Moisture Sample" }],
-        colorZones: [
-          { color: "blue", label: "Blue Water Patch", x: 120, y: 300, width: 120, height: 85, fill: "rgba(89, 215, 255, 0.24)", stroke: "#72dfff" },
-        ],
-        photoRequirements: [{ id: "photo-f4-koala", animal: "Koala", label: "Koala Crossing Photo", x: 803, y: 263, radius: 34 }],
+        title: "Mission 4: First Officer Trial",
+        objective: "Complete the full skyport route, photograph the relay pillar, collect a blue sample mid-mission, and prove you are ready for command.",
+        story: "Skyport control gives one final relay mission before promoting the student to captain training, and it includes a relay photo plus a blue sample pickup.",
+        goalLabel: "Trial Flight",
+        sampleRequirements: [{ color: "blue", label: "Blue Trial Sample", x: 623, y: 173, radius: 46 }],
+        photoRequirements: [{ label: "Relay Pillar Photo", x: 623, y: 173, radius: 58 }],
         launchPad: { x: 92, y: 438, width: 126, height: 56 },
         checkpoints: [
-          { id: "f4-a", name: "Understorey Plot", x: 210, y: 370, radius: 22 },
-          { id: "f4-b", name: "Nest Box Cluster", x: 365, y: 210, radius: 22 },
-          { id: "f4-c", name: "Canopy Gap", x: 560, y: 145, radius: 22 },
-          { id: "f4-d", name: "Fallen Log Habitat", x: 770, y: 235, radius: 22 },
-          { id: "f4-e", name: "Return Transect", x: 835, y: 390, radius: 22 },
+          { id: "f4-a", name: "Point One", x: 210, y: 370, radius: 22 },
+          { id: "f4-b", name: "Point Two", x: 365, y: 210, radius: 22 },
+          { id: "f4-c", name: "Point Three", x: 560, y: 145, radius: 22 },
+          { id: "f4-d", name: "Point Four", x: 740, y: 235, radius: 22 },
+          { id: "f4-e", name: "Point Five", x: 835, y: 390, radius: 22 },
         ],
         noFlyZones: [
-          { x: 250, y: 250, width: 85, height: 160, label: "Nest Buffer" },
-          { x: 455, y: 120, width: 90, height: 170, label: "Old Hollow" },
-          { x: 650, y: 210, width: 95, height: 160, label: "Quiet Zone" },
+          { x: 250, y: 250, width: 85, height: 160, label: "Dock Tower" },
+          { x: 455, y: 120, width: 90, height: 170, label: "Relay Pillar" },
+          { x: 650, y: 270, width: 95, height: 120, label: "Radar Core" },
         ],
         decorations: [
           { type: "cloud", x: 205, y: 90, size: 0.85 },
@@ -554,9 +536,12 @@ moveRight(155);
 moveUp(160);
 moveRight(195);
 moveUp(65);
+takePhoto();
+land();
+takeSample();
+takeOff();
 moveRight(180);
 moveDown(90);
-takePhoto();
 moveRight(95);
 moveDown(155);
 moveLeft(743);
@@ -566,32 +551,29 @@ land();`,
     ],
   },
   captain: {
-    label: "Senior Scientist",
-    title: "Landscape Conservation Team",
+    label: "Captain",
+    title: "Storm Frontier Command",
     droneColor: "#ffd7a8",
     rotorColor: "#ffef7b",
     sky: ["#311f43", "#56305e", "#442335", "#251628"],
     missions: [
       {
-        title: "Mission 1: Post-Fire Erosion Check",
-        objective: "Cross the monitoring gates, photograph the lyrebird refuge, land on the grey patch for an ash-soil land sample, then finish the tracker run and land at base.",
-        story: "Rain is moving toward a burnt catchment, and the senior scientist needs live erosion readings, a lyrebird refuge photo, and a grey ash-soil sample for habitat repair.",
-        goalLabel: "Erosion Trackers",
-        sampleRequirements: [{ color: "grey", label: "Ash Soil Sample" }],
-        colorZones: [
-          { color: "grey", label: "Grey Soil Patch", x: 130, y: 320, width: 90, height: 70, fill: "rgba(170, 180, 191, 0.32)", stroke: "#b8c1ca" },
-        ],
-        photoRequirements: [{ id: "photo-e1-lyrebird", animal: "Lyrebird", label: "Lyrebird Refuge Photo", x: 591, y: 208, radius: 34 }],
+        title: "Mission 1: Storm Wall Entry",
+        objective: "Cross the frontier gates, take a storm-front photo, land on the grey patch for a storm dust sample, then finish the tracker run and land at command.",
+        story: "Lightning cells are moving in, and command needs live readings, a storm-front photo, and a grey storm dust sample before the route closes.",
+        goalLabel: "Storm Trackers",
+        sampleRequirements: [{ color: "grey", label: "Grey Storm Sample", x: 276, y: 383, radius: 46 }],
+        photoRequirements: [{ label: "Storm Front Photo", x: 276, y: 383, radius: 58 }],
         launchPad: { x: 80, y: 445, width: 122, height: 56 },
         checkpoints: [
-          { id: "e1-a", name: "Slope Tracker One", x: 245, y: 230, radius: 22 },
-          { id: "e1-b", name: "Slope Tracker Two", x: 520, y: 180, radius: 22 },
-          { id: "e1-c", name: "Sediment Trap", x: 780, y: 320, radius: 22 },
+          { id: "e1-a", name: "Tracker One", x: 245, y: 230, radius: 22 },
+          { id: "e1-b", name: "Tracker Two", x: 520, y: 180, radius: 22 },
+          { id: "e1-c", name: "Tracker Three", x: 780, y: 320, radius: 22 },
         ],
         noFlyZones: [
-          { x: 230, y: 300, width: 105, height: 180, label: "Unstable Slope" },
-          { x: 470, y: 255, width: 135, height: 220, label: "Fallen Trees" },
-          { x: 700, y: 95, width: 95, height: 150, label: "Raptor Nest" },
+          { x: 230, y: 300, width: 105, height: 180, label: "Storm Core" },
+          { x: 470, y: 255, width: 135, height: 220, label: "Tower Field" },
+          { x: 700, y: 95, width: 95, height: 150, label: "Lightning Mast" },
         ],
         decorations: [
           { type: "lightning", x: 180, y: 120 },
@@ -601,14 +583,17 @@ land();`,
         example: `takeOff();
 moveRight(135);
 moveUp(90);
+takePhoto();
 if (sensingColor("grey")) {
+land();
+takeSample();
+takeOff();
 for (let i = 0; i < 1; i++) {
 wait(1);
 }
 moveUp(125);
 moveRight(315);
 moveUp(50);
-takePhoto();
 moveRight(260);
 moveDown(140);
 moveLeft(710);
@@ -617,26 +602,24 @@ moveDown(125);
 land();`,
       },
       {
-        title: "Mission 2: Wildlife Corridor Maze",
-        objective: "Navigate through a dense habitat corridor, photograph the wallaby corridor, land on the blue patch for a waterhole land sample, then keep flying through the maze.",
-        story: "GPS-collared animals are moving through a narrow corridor, and the scientist wants a wallaby photo and blue waterhole-edge land sample without entering quiet zones.",
-        goalLabel: "Corridor Hover",
-        sampleRequirements: [{ color: "blue", label: "Waterhole Edge Land Sample" }],
-        colorZones: [
-          { color: "blue", label: "Blue Water Patch", x: 410, y: 325, width: 85, height: 85, fill: "rgba(89, 215, 255, 0.24)", stroke: "#72dfff" },
-        ],
-        photoRequirements: [{ id: "photo-e2-wallaby", animal: "Wallaby", label: "Wallaby Corridor Photo", x: 818, y: 268, radius: 34 }],
+        title: "Mission 2: Radio Maze",
+        objective: "Navigate through a dense radio corridor, photograph the relay core, land for a ground sample, take the blue relay sample, then keep flying through the maze.",
+        story: "A broken relay node is bouncing distress packets, and command wants a relay-core photo, a ground sample, and a blue relay sample while the drone is inside the maze.",
+        goalLabel: "Relay Hover",
+        sampleRequirements: [{ color: "blue", label: "Blue Relay Sample", x: 608, y: 268, radius: 46 }],
+        landSampleRequirements: [{ color: "brown", label: "Relay Ground Sample", x: 608, y: 268, radius: 46 }],
+        photoRequirements: [{ label: "Relay Core Photo", x: 608, y: 268, radius: 58 }],
         launchPad: { x: 115, y: 440, width: 125, height: 56 },
         checkpoints: [
-          { id: "e2-a", name: "West Camera Trap", x: 270, y: 365, radius: 22 },
-          { id: "e2-b", name: "North Waterhole", x: 420, y: 165, radius: 22 },
-          { id: "e2-c", name: "Corridor Pinch Point", x: 630, y: 165, radius: 22 },
-          { id: "e2-d", name: "East Camera Trap", x: 825, y: 300, radius: 22 },
+          { id: "e2-a", name: "Relay West", x: 270, y: 365, radius: 22 },
+          { id: "e2-b", name: "Relay North", x: 420, y: 165, radius: 22 },
+          { id: "e2-c", name: "Relay Core", x: 630, y: 165, radius: 22 },
+          { id: "e2-d", name: "Relay East", x: 825, y: 300, radius: 22 },
         ],
         noFlyZones: [
-          { x: 305, y: 235, width: 90, height: 205, label: "Quiet Zone A" },
-          { x: 510, y: 95, width: 90, height: 215, label: "Quiet Zone B" },
-          { x: 695, y: 255, width: 95, height: 185, label: "Quiet Zone C" },
+          { x: 305, y: 235, width: 90, height: 205, label: "Array A" },
+          { x: 510, y: 95, width: 90, height: 215, label: "Array B" },
+          { x: 695, y: 255, width: 95, height: 185, label: "Array C" },
         ],
         decorations: [
           { type: "stars", density: 22 },
@@ -645,15 +628,16 @@ land();`,
         example: `takeOff();
 moveRight(430);
 moveUp(200);
+takePhoto();
 if (sensingColor("blue")) {
 land();
 takeSample();
+takeLandSample();
 takeOff();
 for (let i = 0; i < 1; i++) {
 wait(1);
 }
 moveRight(210);
-takePhoto();
 wait(1);
 moveRight(195);
 moveDown(135);
@@ -663,28 +647,26 @@ moveDown(140);
 land();`,
       },
       {
-        title: "Mission 3: Alpine Plant Transect",
-        objective: "Cross five research plots, photograph the pygmy-possum habitat, land on the gold patch to collect a land sample, then return safely.",
-        story: "A cold front is approaching the alpine reserve, so the senior scientist must photograph pygmy-possum habitat and collect a gold land sample through the safest gap.",
-        goalLabel: "Alpine Transect",
-        sampleRequirements: [{ color: "gold", label: "Alpine Pollen Sample" }],
-        colorZones: [
-          { color: "gold", label: "Gold Pollen Patch", x: 120, y: 320, width: 120, height: 85, fill: "rgba(255, 215, 140, 0.24)", stroke: "#ffd78c" },
-        ],
-        photoRequirements: [{ id: "photo-e3-possum", animal: "Pygmy Possum", label: "Pygmy Possum Habitat Photo", x: 802, y: 288, radius: 34 }],
+        title: "Mission 3: Thunder Corridor",
+        objective: "Cross five command nodes, take a thunder-cell photo, land to collect a land reading, collect charged dust, then return alive.",
+        story: "The weather wall is shifting and the captain must stitch together a route through the safest gap while photographing the thunder cell and collecting land and storm samples.",
+        goalLabel: "Thunder Route",
+        sampleRequirements: [{ color: "gold", label: "Gold Storm Sample", x: 422, y: 188, radius: 46 }],
+        landSampleRequirements: [{ color: "brown", label: "Thunder Land Sample", x: 422, y: 188, radius: 46 }],
+        photoRequirements: [{ label: "Thunder Cell Photo", x: 422, y: 188, radius: 58 }],
         launchPad: { x: 82, y: 440, width: 124, height: 56 },
         checkpoints: [
-          { id: "e3-a", name: "Snow Gum Plot", x: 205, y: 350, radius: 22 },
-          { id: "e3-b", name: "Herbfield Plot", x: 360, y: 160, radius: 22 },
-          { id: "e3-c", name: "Bog Plot", x: 560, y: 140, radius: 22 },
-          { id: "e3-d", name: "Rock Garden Plot", x: 740, y: 240, radius: 22 },
-          { id: "e3-e", name: "Shelter Plot", x: 860, y: 390, radius: 22 },
+          { id: "e3-a", name: "Node West", x: 205, y: 350, radius: 22 },
+          { id: "e3-b", name: "Node North", x: 360, y: 160, radius: 22 },
+          { id: "e3-c", name: "Node Mid", x: 560, y: 140, radius: 22 },
+          { id: "e3-d", name: "Node East", x: 740, y: 240, radius: 22 },
+          { id: "e3-e", name: "Node South", x: 860, y: 390, radius: 22 },
         ],
         noFlyZones: [
-          { x: 245, y: 200, width: 85, height: 205, label: "Fragile Moss A" },
-          { x: 445, y: 100, width: 90, height: 175, label: "Fragile Moss B" },
-          { x: 640, y: 225, width: 90, height: 160, label: "Wombat Burrow" },
-          { x: 810, y: 145, width: 70, height: 140, label: "Nest Ledge" },
+          { x: 245, y: 200, width: 85, height: 205, label: "Cell A" },
+          { x: 445, y: 100, width: 90, height: 175, label: "Cell B" },
+          { x: 640, y: 225, width: 90, height: 160, label: "Cell C" },
+          { x: 810, y: 145, width: 70, height: 140, label: "Cell D" },
         ],
         decorations: [
           { type: "stars", density: 28 },
@@ -700,10 +682,14 @@ moveRight(123);
 moveUp(90);
 moveRight(155);
 moveUp(190);
+takePhoto();
+land();
+takeSample();
+takeLandSample();
+takeOff();
 moveRight(200);
 moveRight(180);
 moveDown(100);
-takePhoto();
 moveRight(120);
 moveDown(150);
 moveLeft(778);
@@ -712,28 +698,26 @@ moveDown(50);
 land();`,
       },
       {
-        title: "Mission 4: Conservation Impact Report",
-        objective: "Complete the full senior scientist route, photograph the wildlife crossing, collect a blue land sample mid-mission, scan all landscape plots, and finish with a precise landing.",
-        story: "This final survey feeds the conservation impact report. Weather is closing in, so the team gets one clean run with a wildlife photo and a blue riparian land sample.",
-        goalLabel: "Impact Report",
-        sampleRequirements: [{ color: "blue", label: "Impact Report Riparian Land Sample" }],
-        colorZones: [
-          { color: "blue", label: "Blue Water Patch", x: 345, y: 325, width: 85, height: 85, fill: "rgba(89, 215, 255, 0.24)", stroke: "#72dfff" },
-        ],
-        photoRequirements: [{ id: "photo-e4-crossing", animal: "Wildlife Crossing", label: "Wildlife Crossing Photo", x: 780, y: 285, radius: 34 }],
+        title: "Mission 4: Command Finale",
+        objective: "Complete the full captain route, capture a final object photo, collect a blue sample and land sample mid-mission, scan all frontier nodes, and finish with a precise landing.",
+        story: "This is the final frontier exam. The storm front is closing and command only gets one clean run, including a final photo, a blue sample pickup, and a land sample.",
+        goalLabel: "Frontier Final",
+        sampleRequirements: [{ color: "blue", label: "Blue Frontier Sample", x: 466, y: 178, radius: 46 }],
+        landSampleRequirements: [{ color: "brown", label: "Frontier Land Sample", x: 466, y: 178, radius: 46 }],
+        photoRequirements: [{ label: "Frontier Object Photo", x: 466, y: 178, radius: 58 }],
         launchPad: { x: 80, y: 438, width: 122, height: 56 },
         checkpoints: [
-          { id: "e3-a", name: "Creekline Plot", x: 220, y: 330, radius: 22 },
-          { id: "e3-b", name: "Ridge Plot", x: 405, y: 150, radius: 22 },
-          { id: "e3-c", name: "Regrowth Plot", x: 610, y: 150, radius: 22 },
-          { id: "e3-d", name: "Wildlife Crossing", x: 760, y: 255, radius: 22 },
-          { id: "e3-e", name: "Reference Plot", x: 850, y: 395, radius: 22 },
+          { id: "e3-a", name: "Node One", x: 220, y: 330, radius: 22 },
+          { id: "e3-b", name: "Node Two", x: 405, y: 150, radius: 22 },
+          { id: "e3-c", name: "Node Three", x: 610, y: 150, radius: 22 },
+          { id: "e3-d", name: "Node Four", x: 760, y: 255, radius: 22 },
+          { id: "e3-e", name: "Node Five", x: 850, y: 395, radius: 22 },
         ],
         noFlyZones: [
-          { x: 240, y: 195, width: 90, height: 220, label: "Nest Buffer A" },
-          { x: 445, y: 85, width: 85, height: 180, label: "Nest Buffer B" },
-          { x: 635, y: 220, width: 90, height: 165, label: "Wetland Edge" },
-          { x: 805, y: 170, width: 80, height: 130, label: "Quiet Refuge" },
+          { x: 240, y: 195, width: 90, height: 220, label: "Core A" },
+          { x: 445, y: 85, width: 85, height: 180, label: "Core B" },
+          { x: 635, y: 220, width: 90, height: 165, label: "Core C" },
+          { x: 805, y: 170, width: 80, height: 130, label: "Core D" },
         ],
         decorations: [
           { type: "stars", density: 30 },
@@ -750,10 +734,14 @@ moveRight(140);
 moveUp(108);
 moveRight(185);
 moveUp(180);
+takePhoto();
+land();
+takeSample();
+takeLandSample();
+takeOff();
 moveRight(205);
 moveRight(150);
 moveDown(105);
-takePhoto();
 moveRight(90);
 moveDown(140);
 moveLeft(770);
@@ -775,7 +763,8 @@ const state = {
   playing: false,
   visitedCheckpoints: new Set(),
   collectedSamples: new Set(),
-  photographedAnimals: new Set(),
+  collectedLandSamples: new Set(),
+  capturedPhotos: new Set(),
   trail: [],
   currentMissionSuccess: false,
   accounts: {},
@@ -784,6 +773,13 @@ const state = {
   authKind: "student",
   selectedTeacherStudentEmail: "",
   selectedStudentMissionKey: "",
+  audio: {
+    context: null,
+    humOscillator: null,
+    humGain: null,
+  },
+  certificateLogo: null,
+  certificateLogoPromise: null,
 };
 
 function getCampaign() {
@@ -838,20 +834,8 @@ function getMissionEntryFromKey(missionKey) {
 }
 
 function getStudentUnlockedMissionKeys() {
-  const account = getCurrentAccount();
   const missions = getAllMissionEntries();
-  if (!account || account.role !== "student") {
-    return new Set(missions.map((entry) => entry.missionKey));
-  }
-  const progress = ensureAccountProgress(account);
-  const unlocked = new Set();
-  for (const entry of missions) {
-    unlocked.add(entry.missionKey);
-    if (!progress[entry.missionKey]?.completed) {
-      break;
-    }
-  }
-  return unlocked;
+  return new Set(missions.map((entry) => entry.missionKey));
 }
 
 function getStudentCompletionSummary(account = getCurrentAccount()) {
@@ -873,262 +857,37 @@ function getStudentCompletionSummary(account = getCurrentAccount()) {
   };
 }
 
-function getRoleProgressSummaries(account = getCurrentAccount()) {
-  const progress = account ? ensureAccountProgress(account) : {};
-  return Object.entries(CAMPAIGNS).map(([levelKey, campaign]) => {
-    const completedCount = campaign.missions.filter((mission, missionIndex) =>
-      progress[getMissionKey(levelKey, missionIndex)]?.completed
-    ).length;
-    return {
-      levelKey,
-      label: campaign.label,
-      completedCount,
-      totalCount: campaign.missions.length,
-      complete: completedCount === campaign.missions.length,
-    };
-  });
-}
-
-function getRoleCompletionDate(account, levelKey) {
-  if (!account || account.role !== "student") {
-    return "";
-  }
-  const progress = ensureAccountProgress(account);
-  const completionDates = CAMPAIGNS[levelKey].missions
-    .map((_mission, missionIndex) => progress[getMissionKey(levelKey, missionIndex)]?.completedAt)
-    .filter(Boolean)
-    .sort();
-  return completionDates.length === CAMPAIGNS[levelKey].missions.length
-    ? completionDates[completionDates.length - 1]
-    : "";
-}
-
-function getAvailableCertificates(account = getCurrentAccount()) {
+function getCompletedRankCertificates(account = getCurrentAccount()) {
   if (!account || account.role !== "student") {
     return [];
   }
-  const roleCertificates = getRoleProgressSummaries(account)
-    .filter((role) => role.complete)
-    .map((role) => ({
-      type: "role",
-      levelKey: role.levelKey,
-      label: `${role.label} Certificate`,
-      roleLabel: role.label,
-      awardedAt: getRoleCompletionDate(account, role.levelKey),
-    }));
-  const summary = getStudentCompletionSummary(account);
-  if (summary.allComplete) {
-    roleCertificates.push({
-      type: "overall",
-      levelKey: "all",
-      label: "Conservation Drone Lab Certificate",
-      roleLabel: "Buckley Park College Conservation Drone Lab",
-      awardedAt: summary.latestCompletedAt,
-    });
-  }
-  return roleCertificates;
+  const progress = ensureAccountProgress(account);
+  return Object.entries(CAMPAIGNS).flatMap(([levelKey, campaign]) => {
+    const missionKeys = campaign.missions.map((_mission, missionIndex) => getMissionKey(levelKey, missionIndex));
+    const complete = missionKeys.every((missionKey) => progress[missionKey]?.completed);
+    if (!complete) {
+      return [];
+    }
+    const completedDates = missionKeys
+      .map((missionKey) => progress[missionKey]?.completedAt)
+      .filter(Boolean)
+      .sort();
+    return [{
+      levelKey,
+      levelLabel: campaign.label,
+      awardedAt: completedDates[completedDates.length - 1] ?? "",
+    }];
+  });
 }
 
-function toPdfText(value) {
-  return String(value ?? "")
-    .replace(/\\/g, "\\\\")
-    .replace(/\(/g, "\\(")
-    .replace(/\)/g, "\\)")
-    .replace(/[^\x20-\x7E]/g, "");
-}
-
-function toPdfFilename(value) {
-  return String(value ?? "")
-    .replace(/[^a-z0-9]+/gi, "-")
-    .replace(/^-+|-+$/g, "")
-    .toLowerCase() || "certificate";
-}
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\"/g, "&quot;");
-}
-
-function buildCertificateMarkup(certificate, account) {
-  const rawStudentName = String(account.name ?? "").trim() || String(account.email ?? "").split("@")[0] || "Student";
-  const studentName = rawStudentName;
-  const issueDate = certificate.awardedAt
-    ? new Date(certificate.awardedAt).toLocaleDateString("en-AU", { year: "numeric", month: "long", day: "numeric" })
-    : new Date().toLocaleDateString("en-AU", { year: "numeric", month: "long", day: "numeric" });
-  const title = certificate.type === "overall" ? "Certificate of Excellence" : "Certificate of Completion";
-  const rankAchieved = certificate.type === "overall" ? "Whole Program Completion" : certificate.roleLabel;
-  const achievementText = certificate.type === "overall"
-    ? "for completing every field role in the Buckley Park College Conservation Drone Lab."
-    : `for completing the ${certificate.roleLabel} field role in the Buckley Park College Conservation Drone Lab.`;
-  const logoUrl = new URL("BPC-logo-WordMarkWHITEcond.png", window.location.href).href;
-
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>${escapeHtml(certificate.label)}</title>
-  <style>
-    @page { size: A4 landscape; margin: 0; }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #102330;
-      color: #f7f5ea;
-    }
-    .sheet {
-      width: 297mm;
-      height: 210mm;
-      margin: 0 auto;
-      padding: 14mm;
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)),
-        #102330;
-    }
-    .certificate {
-      width: 100%;
-      height: 100%;
-      border: 4px solid #f0d46a;
-      padding: 14mm 16mm;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      background:
-        radial-gradient(circle at top right, rgba(240, 212, 106, 0.18), transparent 24%),
-        rgba(7, 19, 27, 0.88);
-    }
-    .logo {
-      width: 110mm;
-      max-width: 100%;
-      object-fit: contain;
-      margin: 0 auto 6mm;
-      display: block;
-    }
-    .eyebrow {
-      text-align: center;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: #f0d46a;
-      font-size: 12pt;
-      margin: 0 0 4mm;
-    }
-    h1 {
-      text-align: center;
-      font-size: 26pt;
-      margin: 0 0 6mm;
-      color: #fffdf3;
-    }
-    .presented {
-      text-align: center;
-      font-size: 13pt;
-      margin: 0 0 4mm;
-      color: #d7dee3;
-    }
-    .student-name {
-      text-align: center;
-      font-size: 28pt;
-      font-weight: 700;
-      color: #f0d46a;
-      margin: 0 0 6mm;
-    }
-    .achievement {
-      text-align: center;
-      font-size: 14pt;
-      line-height: 1.55;
-      max-width: 230mm;
-      margin: 0 auto;
-      color: #f7f5ea;
-    }
-    .meta-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8mm;
-      margin-top: 10mm;
-    }
-    .meta-card {
-      border: 1px solid rgba(240, 212, 106, 0.45);
-      padding: 6mm 7mm;
-      min-height: 28mm;
-      background: rgba(255,255,255,0.03);
-    }
-    .meta-label {
-      font-size: 10pt;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: #f0d46a;
-      margin-bottom: 2mm;
-    }
-    .meta-value {
-      font-size: 16pt;
-      font-weight: 700;
-      color: #fffdf3;
-    }
-    .footer {
-      text-align: center;
-      font-size: 11pt;
-      color: #d7dee3;
-      margin-top: 8mm;
-    }
-  </style>
-</head>
-<body>
-  <div class="sheet">
-    <div class="certificate">
-      <div>
-        <img class="logo" src="${escapeHtml(logoUrl)}" alt="Buckley Park College logo">
-        <p class="eyebrow">Buckley Park College</p>
-        <h1>${escapeHtml(title)}</h1>
-        <p class="presented">Presented to</p>
-        <p class="student-name">${escapeHtml(studentName)}</p>
-        <p class="achievement">${escapeHtml(achievementText)}</p>
-        <div class="meta-grid">
-          <div class="meta-card">
-            <div class="meta-label">Student Name</div>
-            <div class="meta-value">${escapeHtml(studentName)}</div>
-          </div>
-          <div class="meta-card">
-            <div class="meta-label">Rank Achieved</div>
-            <div class="meta-value">${escapeHtml(rankAchieved)}</div>
-          </div>
-          <div class="meta-card">
-            <div class="meta-label">Award Date</div>
-            <div class="meta-value">${escapeHtml(issueDate)}</div>
-          </div>
-        </div>
-      </div>
-      <p class="footer">Buckley Park College Conservation Science and Drone Program</p>
-    </div>
-  </div>
-</body>
-</html>`;
-}
-
-function downloadCertificate(certificate) {
-  const account = getCurrentAccount();
-  if (!account || account.role !== "student") {
-    return;
-  }
-  const printWindow = window.open("", "_blank", "width=1200,height=850");
-  if (!printWindow) {
-    updateFeedback("Allow pop-ups to open the certificate and save it as a PDF.", "Popup Blocked", "chip-warn");
-    return;
-  }
-  printWindow.document.open();
-  printWindow.document.write(buildCertificateMarkup(certificate, account));
-  printWindow.document.close();
-  printWindow.addEventListener("load", () => {
-    printWindow.focus();
-    printWindow.print();
-  }, { once: true });
-}
-
-function renderStarRow(completedCount, totalCount) {
-  return Array.from({ length: totalCount }, (_item, index) =>
-    `<span class="role-star ${index < completedCount ? "filled" : ""}" aria-hidden="true">${index < completedCount ? "★" : "☆"}</span>`
-  ).join("");
+function formatCertificateDate(value) {
+  const date = value ? new Date(value) : new Date();
+  const safeDate = Number.isNaN(date.getTime()) ? new Date() : date;
+  return safeDate.toLocaleDateString("en-AU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }
 
 function ensureAccountProgress(account) {
@@ -1140,13 +899,20 @@ function getMission() {
   return getCampaign().missions[state.missionIndex];
 }
 
-function isIntroExampleMission(levelKey = state.levelKey, missionIndex = state.missionIndex) {
-  return levelKey === "cadet" && missionIndex === 0;
-}
-
 function getInitialDrone() {
   const pad = getMission().launchPad;
-  return { x: pad.x + pad.width / 2, y: pad.y + pad.height / 2, altitude: 0, heading: 0, airborne: false, sampleFlashMs: 0, photoFlashMs: 0, sampledTargets: new Set(), photographedTargets: new Set() };
+  return {
+    x: pad.x + pad.width / 2,
+    y: pad.y + pad.height / 2,
+    altitude: 0,
+    heading: 0,
+    airborne: false,
+    sampleFlashMs: 0,
+    photoFlashMs: 0,
+    sampledTargets: new Set(),
+    landSampledTargets: new Set(),
+    photoTargets: new Set(),
+  };
 }
 
 function loadAccounts() {
@@ -1223,8 +989,10 @@ function refreshAuthUi() {
   const account = getCurrentAccount();
   const signedIn = Boolean(account);
   const teacherMode = isTeacherUser();
+  const studentMode = isStudentUser();
   entryOverlay.classList.toggle("hidden", signedIn);
   appShell.classList.toggle("teacher-mode", teacherMode);
+  appShell.classList.toggle("student-layout", studentMode);
   mainColumn.classList.toggle("hidden", teacherMode);
   missionPanel.classList.toggle("hidden", teacherMode);
   commandsPanel.classList.toggle("hidden", teacherMode);
@@ -1249,6 +1017,7 @@ function refreshStudentWorkspace() {
     return;
   }
   appShell.classList.remove("teacher-mode");
+  appShell.classList.add("student-layout");
   mainColumn.classList.remove("hidden");
   missionPanel.classList.remove("hidden");
   commandsPanel.classList.remove("hidden");
@@ -1270,15 +1039,16 @@ function refreshStudentWorkspace() {
 }
 
 function resetSimulatorForAuthSwitch() {
-  stopDroneHum();
   state.playing = false;
   state.animationQueue = [];
   state.currentStep = null;
   state.lastTime = 0;
   state.visitedCheckpoints = new Set();
   state.collectedSamples = new Set();
-  state.photographedAnimals = new Set();
+  state.collectedLandSamples = new Set();
+  state.capturedPhotos = new Set();
   state.currentMissionSuccess = false;
+  stopDroneHum();
   if (state.drone) {
     state.drone.sampleFlashMs = 0;
     state.drone.photoFlashMs = 0;
@@ -1288,11 +1058,6 @@ function resetSimulatorForAuthSwitch() {
 function switchStudentMissionByKey(missionKey) {
   const missionEntry = getMissionEntryFromKey(missionKey);
   if (!missionEntry || !isStudentUser()) {
-    return;
-  }
-  if (!getStudentUnlockedMissionKeys().has(missionEntry.missionKey)) {
-    renderStudentProgress();
-    updateFeedback("Complete the previous mission before opening this one.", "Locked", "chip-warn");
     return;
   }
   state.selectedStudentMissionKey = missionEntry.missionKey;
@@ -1382,23 +1147,47 @@ function renderStudentProgress() {
   if (!isStudentUser()) {
     studentMissionSelect.innerHTML = "";
     studentProgressList.innerHTML = "";
+    roleProgressPanel.innerHTML = "";
+    rankCertificatesPanel.innerHTML = "";
+    rankCertificatesPanel.classList.add("hidden");
     studentProgressBadge.textContent = "0 complete";
     certificatePanel.classList.add("hidden");
-    certificateActions.innerHTML = "";
     return;
   }
   const account = getCurrentAccount();
   const progress = ensureAccountProgress(account);
   const summary = getStudentCompletionSummary(account);
+  const rankCertificates = getCompletedRankCertificates(account);
   const missions = summary.missions;
-  const unlockedMissionKeys = getStudentUnlockedMissionKeys();
   const completedCount = summary.completedCount;
   studentProgressBadge.textContent = `${completedCount} complete`;
   studentProgressBadge.className = `chip ${completedCount ? "chip-good" : "chip-calm"}`;
-  if (
-    !missions.some((entry) => entry.missionKey === state.selectedStudentMissionKey) ||
-    !unlockedMissionKeys.has(state.selectedStudentMissionKey)
-  ) {
+  roleProgressPanel.innerHTML = Object.entries(CAMPAIGNS).map(([levelKey, campaign]) => {
+    const missionStars = campaign.missions.map((mission, missionIndex) => {
+      const missionKey = getMissionKey(levelKey, missionIndex);
+      const complete = Boolean(progress[missionKey]?.completed);
+      return `<span class="mission-star ${complete ? "filled" : ""}" title="${mission.title}">${complete ? "★" : "☆"}</span>`;
+    }).join("");
+    const levelComplete = campaign.missions.every((mission, missionIndex) => progress[getMissionKey(levelKey, missionIndex)]?.completed);
+    return `<div class="role-progress-row ${levelComplete ? "complete" : ""}">
+      <div>
+        <strong>${campaign.label}</strong>
+        <div class="mission-stars">${missionStars}</div>
+      </div>
+      <span class="role-badge ${levelComplete ? "earned" : ""}">${levelComplete ? `${campaign.label} Badge` : "Badge locked"}</span>
+    </div>`;
+  }).join("");
+  rankCertificatesPanel.classList.toggle("hidden", !rankCertificates.length);
+  rankCertificatesPanel.innerHTML = rankCertificates.map((certificate) => `
+    <div class="rank-certificate-card">
+      <div>
+        <strong>${certificate.levelLabel} Certificate</strong>
+        <div>${certificate.awardedAt ? `Awarded on ${formatCertificateDate(certificate.awardedAt)}` : "Rank complete"}</div>
+      </div>
+      <button type="button" class="secondary-button rank-certificate-button" data-level-key="${certificate.levelKey}">Download PDF</button>
+    </div>
+  `).join("");
+  if (!missions.some((entry) => entry.missionKey === state.selectedStudentMissionKey)) {
     state.selectedStudentMissionKey = missions[0]?.missionKey ?? "";
   }
 
@@ -1406,7 +1195,6 @@ function renderStudentProgress() {
     <option
       value="${entry.missionKey}"
       ${entry.missionKey === state.selectedStudentMissionKey ? "selected" : ""}
-      ${unlockedMissionKeys.has(entry.missionKey) ? "" : "disabled"}
     >
       ${entry.levelLabel} - ${entry.missionTitle}
     </option>
@@ -1420,46 +1208,17 @@ function renderStudentProgress() {
 
   const complete = Boolean(progress[selectedMission.missionKey]?.completed);
   const completedAt = progress[selectedMission.missionKey]?.completedAt;
-  const unlocked = unlockedMissionKeys.has(selectedMission.missionKey);
-  const roleProgressHtml = getRoleProgressSummaries(account).map((role) => `
-    <div class="role-progress-card ${role.complete ? "complete" : ""}">
-      <div>
-        <strong>${role.label}</strong>
-        <div>${role.completedCount} of ${role.totalCount} missions complete</div>
-      </div>
-      <div class="role-award">
-        <div class="role-stars" aria-label="${role.completedCount} of ${role.totalCount} stars earned">
-          ${renderStarRow(role.completedCount, role.totalCount)}
-        </div>
-        ${role.complete ? `<span class="role-badge">${role.label} Badge</span>` : `<span class="role-badge clear">Badge locked</span>`}
-      </div>
-    </div>
-  `).join("");
-  const selectedMissionHtml = `<div class="checkpoint-item ${complete ? "complete" : ""}"><div><strong>${selectedMission.levelLabel} - ${selectedMission.missionTitle}</strong><div>${complete ? `Completed${completedAt ? ` on ${new Date(completedAt).toLocaleDateString()}` : ""}` : unlocked ? "Ready to attempt" : "Locked until the previous mission is completed"}</div></div><span class="chip ${complete ? "chip-good" : unlocked ? "chip-calm" : "chip-warn"}">${complete ? "Done" : unlocked ? "Unlocked" : "Locked"}</span></div>`;
-  studentProgressList.innerHTML = roleProgressHtml + selectedMissionHtml;
+  const savedCode = progress[selectedMission.missionKey]?.code;
+  const completeMessage = `Completed${completedAt ? ` on ${new Date(completedAt).toLocaleDateString()}` : ""}${savedCode ? ". Saved code will load in the editor." : ""}`;
+  studentProgressList.innerHTML = `<div class="checkpoint-item ${complete ? "complete" : ""}"><div><strong>${selectedMission.levelLabel} - ${selectedMission.missionTitle}</strong><div>${complete ? completeMessage : "Ready to attempt"}</div></div><span class="chip ${complete ? "chip-good" : "chip-calm"}">${complete ? "Done" : "Available"}</span></div>`;
 
-  const availableCertificates = getAvailableCertificates(account);
-  certificatePanel.classList.toggle("hidden", availableCertificates.length === 0);
-  if (!availableCertificates.length) {
-    certificateSummaryText.textContent = "Certificates unlock as each field role is completed.";
-    certificateDateText.textContent = "Finish all four missions in a field role to unlock that PDF certificate.";
-    certificateActions.innerHTML = "";
-    return;
+  certificatePanel.classList.toggle("hidden", !summary.allComplete);
+  if (summary.allComplete) {
+    certificateStudentName.textContent = account.name ?? account.email;
+    certificateDateText.textContent = summary.latestCompletedAt
+      ? `Awarded on ${formatCertificateDate(summary.latestCompletedAt)}`
+      : "Awarded for completing all missions";
   }
-  certificateSummaryText.textContent = `${account.name ?? account.email} has unlocked ${availableCertificates.length} certificate${availableCertificates.length === 1 ? "" : "s"}.`;
-  certificateDateText.textContent = summary.allComplete
-    ? "All field role certificates are ready, and the full lab certificate is unlocked."
-    : "Each completed field role now has a downloadable PDF certificate.";
-  certificateActions.innerHTML = availableCertificates.map((certificate) => `
-    <button
-      type="button"
-      class="secondary-button certificate-download-button"
-      data-certificate-type="${certificate.type}"
-      data-certificate-level="${certificate.levelKey}"
-    >
-      Download ${certificate.label}
-    </button>
-  `).join("");
 }
 
 function renderTeacherDashboard() {
@@ -1612,15 +1371,12 @@ function recordMissionCompletion() {
   }
   const account = getCurrentAccount();
   const progress = ensureAccountProgress(account);
-  const missionKey = getMissionKey();
-  const previousEntry = progress[missionKey] ?? {};
-  progress[missionKey] = {
-    ...previousEntry,
+  progress[getMissionKey()] = {
     completed: true,
     completedAt: new Date().toISOString(),
     levelKey: state.levelKey,
     missionIndex: state.missionIndex,
-    savedCode: codeEditor.value,
+    code: codeEditor.value,
   };
   saveAccounts();
   renderStudentProgress();
@@ -1639,15 +1395,15 @@ function setTheme() {
 
 function getRankRequirementText() {
   if (state.levelKey === "second_officer") {
-    return "Field Ecologist missions can be solved with direct commands. Students can also use if statements, such as if (sensingColor(\"grey\")) { ... }, if they want to.";
+    return "If statements are optional here. You can use colour sensing such as if (sensingColor(\"grey\")) { ... } when it helps your plan.";
   }
   if (state.levelKey === "first_officer") {
-    return "Research Lead missions can be solved with direct commands. Students can also use loops, such as for (let i = 0; i < 3; i++) { ... }, if they want to.";
+    return "Loops are optional here. They can help repeat moves, such as for (let i = 0; i < 3; i++) { ... }.";
   }
   if (state.levelKey === "captain") {
-    return "Senior Scientist missions can be solved with direct commands. If statements, loops, and colour sensing are still available for students who want to use them.";
+    return "If statements and loops are both available if you want them, but Captain missions can still be solved without either one.";
   }
-  return "Field Trainee missions can be solved with direct commands, and students can try extra coding structures later if they want to.";
+  return "Direct commands work for every mission. If statements and loops are optional tools you can use at any rank.";
 }
 
 function getMissionColorZones() {
@@ -1655,31 +1411,311 @@ function getMissionColorZones() {
     return getMission().colorZones;
   }
   return [
-    { color: "grey", label: "Grey Soil Patch", x: 215, y: 330, width: 120, height: 85, fill: "rgba(170, 180, 191, 0.32)", stroke: "#b8c1ca" },
-    { color: "blue", label: "Blue Water Patch", x: 485, y: 155, width: 120, height: 85, fill: "rgba(89, 215, 255, 0.24)", stroke: "#72dfff" },
-    { color: "gold", label: "Gold Pollen Patch", x: 735, y: 345, width: 120, height: 85, fill: "rgba(255, 215, 140, 0.24)", stroke: "#ffd78c" },
+    { color: "grey", label: "Grey Rock", x: 215, y: 330, width: 120, height: 85, fill: "rgba(170, 180, 191, 0.32)", stroke: "#b8c1ca" },
+    { color: "blue", label: "Blue Tile", x: 485, y: 155, width: 120, height: 85, fill: "rgba(89, 215, 255, 0.24)", stroke: "#72dfff" },
+    { color: "gold", label: "Gold Tile", x: 735, y: 345, width: 120, height: 85, fill: "rgba(255, 215, 140, 0.24)", stroke: "#ffd78c" },
   ];
 }
 
-function getSavedMissionCode(levelKey = state.levelKey, missionIndex = state.missionIndex) {
-  const account = getCurrentAccount();
-  if (!account || account.role !== "student") {
+function isExampleAvailableForMission() {
+  return state.missionIndex === 0;
+}
+
+function refreshExampleButton() {
+  const exampleAvailable = isExampleAvailableForMission();
+  exampleButton.classList.toggle("hidden", !exampleAvailable);
+  exampleButton.disabled = !exampleAvailable;
+}
+
+function getSavedMissionCode() {
+  if (!isStudentUser()) {
     return "";
   }
+  const account = getCurrentAccount();
   const progress = ensureAccountProgress(account);
-  return progress[getMissionKey(levelKey, missionIndex)]?.savedCode ?? "";
+  return progress[getMissionKey()]?.code ?? "";
 }
 
 function loadMissionEditor(exampleOverride) {
+  if (exampleOverride !== undefined) {
+    codeEditor.value = exampleOverride;
+    refreshExampleButton();
+    return;
+  }
   const savedCode = getSavedMissionCode();
-  codeEditor.value = exampleOverride
-    ?? (savedCode || (isIntroExampleMission() ? getMission().example : ""));
+  codeEditor.value = savedCode || (isExampleAvailableForMission() ? getMission().example : "");
+  refreshExampleButton();
+}
+
+async function loadCertificateLogo() {
+  if (state.certificateLogo?.complete && state.certificateLogo.naturalWidth > 0) {
+    return state.certificateLogo;
+  }
+  if (!state.certificateLogoPromise) {
+    state.certificateLogoPromise = new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => {
+        state.certificateLogo = image;
+        resolve(image);
+      };
+      image.onerror = () => {
+        state.certificateLogoPromise = null;
+        reject(new Error("The Buckley Park College logo could not be loaded."));
+      };
+      image.src = "BPC-logo-WordMarkWHITEcond.png";
+    });
+  }
+  return state.certificateLogoPromise;
+}
+
+function buildRankCertificateCanvas(studentName, levelLabel, awardDate, logoImage) {
+  const certificateCanvas = document.createElement("canvas");
+  certificateCanvas.width = 1600;
+  certificateCanvas.height = 1131;
+  const certificateContext = certificateCanvas.getContext("2d");
+
+  certificateContext.fillStyle = "#f7f1e4";
+  certificateContext.fillRect(0, 0, certificateCanvas.width, certificateCanvas.height);
+
+  certificateContext.fillStyle = "#163d66";
+  certificateContext.fillRect(70, 70, certificateCanvas.width - 140, 190);
+  certificateContext.fillStyle = "#245b90";
+  certificateContext.fillRect(70, 244, certificateCanvas.width - 140, 16);
+
+  certificateContext.strokeStyle = "#163d66";
+  certificateContext.lineWidth = 8;
+  certificateContext.strokeRect(52, 52, certificateCanvas.width - 104, certificateCanvas.height - 104);
+  certificateContext.strokeStyle = "#c8a95d";
+  certificateContext.lineWidth = 3;
+  certificateContext.strokeRect(82, 82, certificateCanvas.width - 164, certificateCanvas.height - 164);
+
+  if (logoImage?.naturalWidth) {
+    const logoWidth = 620;
+    const logoHeight = (logoImage.naturalHeight / logoImage.naturalWidth) * logoWidth;
+    certificateContext.drawImage(
+      logoImage,
+      (certificateCanvas.width - logoWidth) / 2,
+      100,
+      logoWidth,
+      logoHeight
+    );
+  } else {
+    certificateContext.fillStyle = "#ffffff";
+    certificateContext.font = "700 52px 'Space Grotesk', sans-serif";
+    certificateContext.textAlign = "center";
+    certificateContext.fillText("Buckley Park College", certificateCanvas.width / 2, 165);
+  }
+
+  certificateContext.fillStyle = "#163d66";
+  certificateContext.textAlign = "center";
+  certificateContext.font = "700 70px 'Space Grotesk', sans-serif";
+  certificateContext.fillText("Certificate of Rank Achievement", certificateCanvas.width / 2, 385);
+
+  certificateContext.fillStyle = "#8b6a2a";
+  certificateContext.font = "600 28px 'Chakra Petch', sans-serif";
+  certificateContext.fillText("Presented to", certificateCanvas.width / 2, 470);
+
+  certificateContext.fillStyle = "#112b45";
+  certificateContext.font = "700 84px 'Space Grotesk', sans-serif";
+  certificateContext.fillText(studentName, certificateCanvas.width / 2, 575);
+
+  certificateContext.strokeStyle = "#c8a95d";
+  certificateContext.lineWidth = 4;
+  certificateContext.beginPath();
+  certificateContext.moveTo(330, 612);
+  certificateContext.lineTo(certificateCanvas.width - 330, 612);
+  certificateContext.stroke();
+
+  certificateContext.fillStyle = "#31485e";
+  certificateContext.font = "500 34px 'Space Grotesk', sans-serif";
+  certificateContext.fillText("for successfully completing the rank of", certificateCanvas.width / 2, 700);
+
+  certificateContext.fillStyle = "#1c5c92";
+  certificateContext.font = "700 64px 'Chakra Petch', sans-serif";
+  certificateContext.fillText(levelLabel, certificateCanvas.width / 2, 790);
+
+  certificateContext.fillStyle = "#31485e";
+  certificateContext.font = "600 28px 'Space Grotesk', sans-serif";
+  certificateContext.fillText(`Awarded on ${awardDate}`, certificateCanvas.width / 2, 875);
+
+  certificateContext.fillStyle = "#163d66";
+  certificateContext.fillRect(245, 934, 1110, 2);
+  certificateContext.font = "700 24px 'Space Grotesk', sans-serif";
+  certificateContext.fillText("Buckley Park College Flight School", certificateCanvas.width / 2, 980);
+  certificateContext.font = "500 24px 'Space Grotesk', sans-serif";
+  certificateContext.fillText("Drone Programming Mission Certificate", certificateCanvas.width / 2, 1022);
+
+  return certificateCanvas;
+}
+
+function encodePdfBytes(text) {
+  return new TextEncoder().encode(text);
+}
+
+function joinPdfBytes(parts) {
+  const totalLength = parts.reduce((sum, part) => sum + part.length, 0);
+  const joined = new Uint8Array(totalLength);
+  let offset = 0;
+  parts.forEach((part) => {
+    joined.set(part, offset);
+    offset += part.length;
+  });
+  return joined;
+}
+
+function dataUrlToUint8Array(dataUrl) {
+  const base64Payload = dataUrl.split(",")[1] ?? "";
+  const binary = window.atob(base64Payload);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return bytes;
+}
+
+function buildImagePdf(jpegBytes, imageWidth, imageHeight) {
+  const pageWidth = 841.89;
+  const pageHeight = 595.28;
+  const contentStream = encodePdfBytes(`q\n${pageWidth} 0 0 ${pageHeight} 0 0 cm\n/Im0 Do\nQ`);
+  const objects = [
+    encodePdfBytes("<< /Type /Catalog /Pages 2 0 R >>"),
+    encodePdfBytes("<< /Type /Pages /Kids [3 0 R] /Count 1 >>"),
+    encodePdfBytes(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`),
+    joinPdfBytes([
+      encodePdfBytes(`<< /Type /XObject /Subtype /Image /Width ${imageWidth} /Height ${imageHeight} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpegBytes.length} >>\nstream\n`),
+      jpegBytes,
+      encodePdfBytes("\nendstream"),
+    ]),
+    joinPdfBytes([
+      encodePdfBytes(`<< /Length ${contentStream.length} >>\nstream\n`),
+      contentStream,
+      encodePdfBytes("\nendstream"),
+    ]),
+  ];
+
+  const header = encodePdfBytes("%PDF-1.4\n%Codex\n");
+  const offsets = [0];
+  const parts = [header];
+  let currentOffset = header.length;
+
+  objects.forEach((objectBytes, index) => {
+    const objectNumber = index + 1;
+    const wrappedObject = joinPdfBytes([
+      encodePdfBytes(`${objectNumber} 0 obj\n`),
+      objectBytes,
+      encodePdfBytes("\nendobj\n"),
+    ]);
+    offsets[objectNumber] = currentOffset;
+    parts.push(wrappedObject);
+    currentOffset += wrappedObject.length;
+  });
+
+  const xrefOffset = currentOffset;
+  let xref = `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  for (let index = 1; index <= objects.length; index += 1) {
+    xref += `${String(offsets[index]).padStart(10, "0")} 00000 n \n`;
+  }
+  xref += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+  parts.push(encodePdfBytes(xref));
+
+  return new Blob(parts, { type: "application/pdf" });
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function downloadRankCertificate(levelKey) {
+  if (!isStudentUser()) {
+    return;
+  }
+  const account = getCurrentAccount();
+  const rankCertificate = getCompletedRankCertificates(account).find((certificate) => certificate.levelKey === levelKey);
+  if (!rankCertificate) {
+    updateFeedback("Complete the full rank before downloading its certificate.", "Not Ready", "chip-warn");
+    return;
+  }
+  const studentName = account.name ?? account.email;
+  const awardDate = formatCertificateDate(rankCertificate.awardedAt);
+  const logoImage = await loadCertificateLogo().catch(() => null);
+  const certificateCanvas = buildRankCertificateCanvas(studentName, rankCertificate.levelLabel, awardDate, logoImage);
+  const jpegUrl = certificateCanvas.toDataURL("image/jpeg", 0.94);
+  const jpegBytes = dataUrlToUint8Array(jpegUrl);
+  const pdfBlob = buildImagePdf(jpegBytes, certificateCanvas.width, certificateCanvas.height);
+  const safeName = studentName.replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "") || "student";
+  const safeRank = rankCertificate.levelLabel.replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "").toLowerCase();
+  downloadBlob(pdfBlob, `${safeName}-${safeRank}-certificate.pdf`);
+  updateFeedback(`${rankCertificate.levelLabel} certificate downloaded as PDF.`, "Certificate", "chip-good");
 }
 
 function updateFeedback(message, badgeText, badgeClass) {
   feedbackText.textContent = message;
   feedbackBadge.textContent = badgeText;
   feedbackBadge.className = `chip ${badgeClass}`;
+}
+
+function getAudioContext() {
+  if (!state.audio.context) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return null;
+    state.audio.context = new AudioContextClass();
+  }
+  if (state.audio.context.state === "suspended") {
+    state.audio.context.resume();
+  }
+  return state.audio.context;
+}
+
+function playSuccessTone(kind = "objective") {
+  const audioContext = getAudioContext();
+  if (!audioContext) return;
+  const oscillator = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+  const now = audioContext.currentTime;
+  const frequency = kind === "mission" ? 880 : kind === "photo" ? 760 : 620;
+  oscillator.type = "sine";
+  oscillator.frequency.setValueAtTime(frequency, now);
+  oscillator.frequency.exponentialRampToValueAtTime(frequency * 1.35, now + 0.16);
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(kind === "mission" ? 0.11 : 0.075, now + 0.025);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
+  oscillator.connect(gain).connect(audioContext.destination);
+  oscillator.start(now);
+  oscillator.stop(now + 0.38);
+}
+
+function startDroneHum() {
+  const audioContext = getAudioContext();
+  if (!audioContext || state.audio.humOscillator) return;
+  const oscillator = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+  const now = audioContext.currentTime;
+  oscillator.type = "sawtooth";
+  oscillator.frequency.setValueAtTime(72, now);
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.linearRampToValueAtTime(0.006, now + 0.35);
+  oscillator.connect(gain).connect(audioContext.destination);
+  oscillator.start(now);
+  state.audio.humOscillator = oscillator;
+  state.audio.humGain = gain;
+}
+
+function stopDroneHum() {
+  if (!state.audio.humOscillator || !state.audio.context) return;
+  const now = state.audio.context.currentTime;
+  state.audio.humGain.gain.cancelScheduledValues(now);
+  state.audio.humGain.gain.setValueAtTime(state.audio.humGain.gain.value, now);
+  state.audio.humGain.gain.linearRampToValueAtTime(0.0001, now + 0.25);
+  state.audio.humOscillator.stop(now + 0.28);
+  state.audio.humOscillator = null;
+  state.audio.humGain = null;
 }
 
 function updateHud() {
@@ -1693,33 +1729,39 @@ function renderMissionPanel() {
   const mission = getMission();
   const allVisited = mission.checkpoints.every((checkpoint) => state.visitedCheckpoints.has(checkpoint.id));
   const sampleRequirements = mission.sampleRequirements ?? [];
+  const landSampleRequirements = mission.landSampleRequirements ?? [];
   const photoRequirements = mission.photoRequirements ?? [];
+  const allSamplesComplete = sampleRequirements.every((sample) => state.collectedSamples.has(sample.label));
+  const allLandSamplesComplete = landSampleRequirements.every((sample) => state.collectedLandSamples.has(sample.label));
+  const allPhotosComplete = photoRequirements.every((photo) => state.capturedPhotos.has(photo.label));
   storyText.textContent = `${campaign.title}: ${mission.story}`;
   missionText.textContent = mission.objective;
   missionIndexBadge.textContent = `Mission ${state.missionIndex + 1} of ${campaign.missions.length}`;
   missionGoalBadge.textContent = mission.goalLabel;
   prevMissionButton.disabled = state.missionIndex === 0;
   nextMissionButton.disabled = state.missionIndex === campaign.missions.length - 1;
-  exampleButton.disabled = !isIntroExampleMission();
-  exampleButton.title = isIntroExampleMission() ? "Load the first worked example." : "Examples are only available on the first mission.";
   const checkpointHtml = mission.checkpoints.map((checkpoint) => {
     const complete = state.visitedCheckpoints.has(checkpoint.id);
-    return `<div class="checkpoint-item ${complete ? "complete" : ""}"><div><strong>${checkpoint.name}</strong><div>${complete ? "Surveyed by drone" : "Pending survey"}</div></div><span class="chip ${complete ? "chip-good" : "chip-calm"}">${complete ? "Done" : "Pending"}</span></div>`;
+    return `<div class="checkpoint-item ${complete ? "complete" : ""}"><div><strong>${checkpoint.name}</strong><div>${complete ? "Reached by drone" : "Pending objective"}</div></div><span class="chip ${complete ? "chip-good" : "chip-calm"}">${complete ? "Done" : "Pending"}</span></div>`;
   }).join("");
   const sampleHtml = sampleRequirements.map((sample) => {
     const complete = state.collectedSamples.has(sample.label);
-    return `<div class="checkpoint-item ${complete ? "complete" : ""}"><div><strong>${sample.label}</strong><div>${complete ? `Collected from ${sample.color} land patch` : `Land on the ${sample.color} patch and use takeSample();`}</div></div><span class="chip ${complete ? "chip-good" : "chip-calm"}">${complete ? "Sampled" : "Pending"}</span></div>`;
+    return `<div class="checkpoint-item ${complete ? "complete" : ""}"><div><strong>${sample.label}</strong><div>${complete ? `Collected from ${sample.color} patch` : `Land on the ${sample.color} patch and use takeSample();`}</div></div><span class="chip ${complete ? "chip-good" : "chip-calm"}">${complete ? "Sampled" : "Pending"}</span></div>`;
+  }).join("");
+  const landSampleHtml = landSampleRequirements.map((sample) => {
+    const complete = state.collectedLandSamples.has(sample.label);
+    return `<div class="checkpoint-item ${complete ? "complete" : ""}"><div><strong>${sample.label}</strong><div>${complete ? `Land sample collected from ${sample.color} patch` : `Land on the ${sample.color} patch and use takeLandSample();`}</div></div><span class="chip ${complete ? "chip-good" : "chip-calm"}">${complete ? "Sampled" : "Pending"}</span></div>`;
   }).join("");
   const photoHtml = photoRequirements.map((photo) => {
-    const complete = state.photographedAnimals.has(photo.label);
-    return `<div class="checkpoint-item ${complete ? "complete" : ""}"><div><strong>${photo.label}</strong><div>${complete ? `Photo captured: ${photo.animal}` : `Hover over the ${photo.animal} marker and use takePhoto();`}</div></div><span class="chip ${complete ? "chip-good" : "chip-calm"}">${complete ? "Photographed" : "Pending"}</span></div>`;
+    const complete = state.capturedPhotos.has(photo.label);
+    return `<div class="checkpoint-item ${complete ? "complete" : ""}"><div><strong>${photo.label}</strong><div>${complete ? "Photo captured" : "Hover near the camera target and use takePhoto();"}</div></div><span class="chip ${complete ? "chip-good" : "chip-calm"}">${complete ? "Photo" : "Pending"}</span></div>`;
   }).join("");
-  checkpointList.innerHTML = checkpointHtml + sampleHtml + photoHtml;
+  checkpointList.innerHTML = checkpointHtml + sampleHtml + landSampleHtml + photoHtml;
 
   if (state.playing) {
     missionState.textContent = "Flying";
     missionState.className = "chip chip-warn";
-  } else if (state.currentMissionSuccess && allVisited) {
+  } else if (state.currentMissionSuccess && allVisited && allSamplesComplete && allLandSamplesComplete && allPhotosComplete) {
     missionState.textContent = "Complete";
     missionState.className = "chip chip-good";
   } else {
@@ -1737,7 +1779,6 @@ function renderCommandPreview(commands) {
 }
 
 function resetDrone() {
-  stopDroneHum();
   state.drone = getInitialDrone();
   state.animationQueue = [];
   state.currentStep = null;
@@ -1745,22 +1786,17 @@ function resetDrone() {
   state.playing = false;
   state.visitedCheckpoints = new Set();
   state.collectedSamples = new Set();
-  state.photographedAnimals = new Set();
+  state.collectedLandSamples = new Set();
+  state.capturedPhotos = new Set();
   state.trail = [{ x: state.drone.x, y: state.drone.y }];
   state.currentMissionSuccess = false;
+  stopDroneHum();
   updateHud();
   renderMissionPanel();
   updateFeedback("Drone reset. Run the mission program when you're ready.", "Ready", "chip-calm");
 }
 
 function applyLevel(levelKey) {
-  if (isStudentUser()) {
-    const targetMissionKey = getMissionKey(levelKey, 0);
-    if (!getStudentUnlockedMissionKeys().has(targetMissionKey)) {
-      updateFeedback("Complete the earlier missions before moving to that level.", "Locked", "chip-warn");
-      return;
-    }
-  }
   state.levelKey = levelKey;
   state.missionIndex = 0;
   state.selectedStudentMissionKey = getMissionKey(state.levelKey, state.missionIndex);
@@ -1772,11 +1808,6 @@ function applyLevel(levelKey) {
 
 function loadMission(index) {
   const nextIndex = clamp(index, 0, getCampaign().missions.length - 1);
-  const nextMissionKey = getMissionKey(state.levelKey, nextIndex);
-  if (isStudentUser() && !getStudentUnlockedMissionKeys().has(nextMissionKey)) {
-    updateFeedback("Complete the previous mission before opening this one.", "Locked", "chip-warn");
-    return;
-  }
   state.missionIndex = nextIndex;
   state.selectedStudentMissionKey = getMissionKey(state.levelKey, state.missionIndex);
   loadMissionEditor();
@@ -1788,7 +1819,6 @@ function parseProgram(source) {
   const lines = source.split(/\r?\n/);
   const parsed = parseBlock(lines, 0, false);
   const commands = expandNodes(parsed.nodes, getInitialDrone());
-  validateRankRequirements(parsed.meta);
   if (!commands.length) throw new Error("Add at least one command before running the mission.");
   return { commands, meta: parsed.meta };
 }
@@ -1855,7 +1885,7 @@ function parseCommandLine(rawLine, lineNumber) {
   const [, name, rawArg] = match;
   if (!COMMANDS.has(name)) throw new Error(`Line ${lineNumber}: "${name}" is not a supported command.`);
   const trimmedArg = rawArg.trim();
-  const needsValue = !["takeOff", "land", "takeSample", "takePhoto"].includes(name);
+  const needsValue = !["takeOff", "land", "takeSample", "takeLandSample", "takePhoto"].includes(name);
   if (!needsValue && trimmedArg) throw new Error(`Line ${lineNumber}: ${name}() does not take a value.`);
   if (needsValue && !trimmedArg) throw new Error(`Line ${lineNumber}: ${name} needs a positive number.`);
   let value = null;
@@ -1912,23 +1942,62 @@ function getSensedColor(x, y) {
     y > candidate.y &&
     y < candidate.y + candidate.height
   );
-  return zone ? zone.color.toLowerCase() : "";
+  if (zone) return zone.color.toLowerCase();
+  const positionedTarget = [
+    ...(getMission().sampleRequirements ?? []),
+    ...(getMission().landSampleRequirements ?? []),
+  ].find((target) => {
+    if (typeof target.x !== "number" || typeof target.y !== "number") return false;
+    return Math.hypot(x - target.x, y - target.y) <= (target.radius ?? 46);
+  });
+  return positionedTarget ? positionedTarget.color.toLowerCase() : "";
 }
 
 function getSampleTargetAtPosition(x, y) {
+  const positionedTarget = (getMission().sampleRequirements ?? []).find((sample) => {
+    if (typeof sample.x !== "number" || typeof sample.y !== "number") return false;
+    return Math.hypot(x - sample.x, y - sample.y) <= (sample.radius ?? 46);
+  });
+  if (positionedTarget) return positionedTarget;
   const sensedColor = getSensedColor(x, y);
   if (!sensedColor) return null;
   return (getMission().sampleRequirements ?? []).find((sample) => sample.color.toLowerCase() === sensedColor) ?? null;
 }
 
-function getPhotoTargetAtPosition(x, y) {
-  return (getMission().photoRequirements ?? []).find((photo) =>
-    Math.hypot(x - photo.x, y - photo.y) <= photo.radius + 16
-  ) ?? null;
+function getLandSampleTargetAtPosition(x, y) {
+  const positionedTarget = (getMission().landSampleRequirements ?? []).find((sample) => {
+    if (typeof sample.x !== "number" || typeof sample.y !== "number") return false;
+    return Math.hypot(x - sample.x, y - sample.y) <= (sample.radius ?? 46);
+  });
+  if (positionedTarget) return positionedTarget;
+  const sensedColor = getSensedColor(x, y);
+  if (!sensedColor) return null;
+  return (getMission().landSampleRequirements ?? []).find((sample) => sample.color.toLowerCase() === sensedColor) ?? null;
 }
 
-function validateRankRequirements(meta) {
-  return meta;
+function getPhotoTargetAtPosition(x, y) {
+  return (getMission().photoRequirements ?? []).find((target) => {
+    const radius = target.radius ?? 44;
+    return Math.hypot(x - target.x, y - target.y) <= radius;
+  }) ?? null;
+}
+
+function validateMissionCommandRequirements(commands) {
+  const mission = getMission();
+  const commandNames = new Set(commands.map((command) => command.name));
+  const missingCommands = [];
+  if ((mission.sampleRequirements ?? []).length && !commandNames.has("takeSample")) {
+    missingCommands.push("takeSample();");
+  }
+  if ((mission.landSampleRequirements ?? []).length && !commandNames.has("takeLandSample")) {
+    missingCommands.push("takeLandSample();");
+  }
+  if ((mission.photoRequirements ?? []).length && !commandNames.has("takePhoto")) {
+    missingCommands.push("takePhoto();");
+  }
+  if (missingCommands.length) {
+    throw new Error(`This mission requires ${missingCommands.join(", ")} in your code before it can be completed.`);
+  }
 }
 
 function validateCommandAgainstState(command, previewDrone) {
@@ -1951,11 +2020,18 @@ function validateCommandAgainstState(command, previewDrone) {
     previewDrone.sampledTargets.add(sampleTarget.label);
     return;
   }
+  if (command.name === "takeLandSample") {
+    if (previewDrone.airborne) throw new Error(`Line ${command.line}: land on a required land patch before taking a land sample.`);
+    const landSampleTarget = getLandSampleTargetAtPosition(previewDrone.x, previewDrone.y);
+    if (!landSampleTarget) throw new Error(`Line ${command.line}: takeLandSample() only works when landed on a required land sample patch.`);
+    previewDrone.landSampledTargets.add(landSampleTarget.label);
+    return;
+  }
   if (command.name === "takePhoto") {
-    if (!previewDrone.airborne) throw new Error(`Line ${command.line}: takePhoto() only works while the drone is airborne above an animal marker.`);
+    if (!previewDrone.airborne) throw new Error(`Line ${command.line}: takePhoto() works while the drone is hovering near a photo target.`);
     const photoTarget = getPhotoTargetAtPosition(previewDrone.x, previewDrone.y);
-    if (!photoTarget) throw new Error(`Line ${command.line}: takePhoto() only works when hovering over a required animal marker.`);
-    previewDrone.photographedTargets.add(photoTarget.label);
+    if (!photoTarget) throw new Error(`Line ${command.line}: takePhoto() only works near a required photo target.`);
+    previewDrone.photoTargets.add(photoTarget.label);
     return;
   }
   if (!previewDrone.airborne) throw new Error(`Line ${command.line}: the drone must take off before it can move.`);
@@ -1997,12 +2073,20 @@ function buildAnimationQueue(commands) {
       queue.push({ type: "sample", sampleLabel: sampleTarget.label, color: sampleTarget.color, duration: 700, label: `Taking ${sampleTarget.color} sample` });
       continue;
     }
+    if (command.name === "takeLandSample") {
+      if (previewDrone.airborne) throw new Error(`Line ${command.line}: land on a required land patch before taking a land sample.`);
+      const landSampleTarget = getLandSampleTargetAtPosition(previewDrone.x, previewDrone.y);
+      if (!landSampleTarget) throw new Error(`Line ${command.line}: takeLandSample() only works when landed on a required land sample patch.`);
+      previewDrone.landSampledTargets.add(landSampleTarget.label);
+      queue.push({ type: "landSample", sampleLabel: landSampleTarget.label, color: landSampleTarget.color, duration: 800, label: `Taking ${landSampleTarget.color} land sample` });
+      continue;
+    }
     if (command.name === "takePhoto") {
-      if (!previewDrone.airborne) throw new Error(`Line ${command.line}: takePhoto() only works while the drone is airborne above an animal marker.`);
+      if (!previewDrone.airborne) throw new Error(`Line ${command.line}: takePhoto() works while the drone is hovering near a photo target.`);
       const photoTarget = getPhotoTargetAtPosition(previewDrone.x, previewDrone.y);
-      if (!photoTarget) throw new Error(`Line ${command.line}: takePhoto() only works when hovering over a required animal marker.`);
-      previewDrone.photographedTargets.add(photoTarget.label);
-      queue.push({ type: "photo", photoLabel: photoTarget.label, animal: photoTarget.animal, duration: 600, label: `Photographing ${photoTarget.animal}` });
+      if (!photoTarget) throw new Error(`Line ${command.line}: takePhoto() only works near a required photo target.`);
+      previewDrone.photoTargets.add(photoTarget.label);
+      queue.push({ type: "photo", photoLabel: photoTarget.label, duration: 550, label: `Taking photo of ${photoTarget.label}` });
       continue;
     }
     if (!previewDrone.airborne) throw new Error(`Line ${command.line}: the drone must take off before it can move.`);
@@ -2040,132 +2124,14 @@ function ensureSafePosition(x, y, line) {
   }
 }
 
-function getMissionAudioContext() {
-  if (!AudioContextClass) {
-    return null;
-  }
-  if (!missionAudioContext) {
-    try {
-      missionAudioContext = new AudioContextClass();
-    } catch (error) {
-      return null;
-    }
-  }
-  return missionAudioContext;
-}
-
-function unlockMissionAudio() {
-  const audioContext = getMissionAudioContext();
-  if (audioContext?.state === "suspended") {
-    const resumeAudio = audioContext.resume();
-    if (resumeAudio?.catch) {
-      resumeAudio.catch(() => {});
-    }
-  }
-}
-
-function playTone(frequency, startOffset, duration, volume = 0.12) {
-  const audioContext = getMissionAudioContext();
-  if (!audioContext || audioContext.state === "suspended") {
-    return;
-  }
-  const oscillator = audioContext.createOscillator();
-  const gain = audioContext.createGain();
-  const startTime = audioContext.currentTime + startOffset;
-  const endTime = startTime + duration;
-
-  oscillator.type = "sine";
-  oscillator.frequency.setValueAtTime(frequency, startTime);
-  gain.gain.setValueAtTime(0.001, startTime);
-  gain.gain.exponentialRampToValueAtTime(volume, startTime + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.001, endTime);
-
-  oscillator.connect(gain);
-  gain.connect(audioContext.destination);
-  oscillator.start(startTime);
-  oscillator.stop(endTime + 0.02);
-}
-
-function startDroneHum() {
-  const audioContext = getMissionAudioContext();
-  if (!audioContext || audioContext.state === "suspended" || droneHum) {
-    return;
-  }
-  const oscillator = audioContext.createOscillator();
-  const gain = audioContext.createGain();
-  const filter = audioContext.createBiquadFilter();
-
-  oscillator.type = "sawtooth";
-  oscillator.frequency.setValueAtTime(82, audioContext.currentTime);
-  filter.type = "lowpass";
-  filter.frequency.setValueAtTime(180, audioContext.currentTime);
-  gain.gain.setValueAtTime(0.001, audioContext.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.035, audioContext.currentTime + 0.18);
-
-  oscillator.connect(filter);
-  filter.connect(gain);
-  gain.connect(audioContext.destination);
-  oscillator.start();
-  droneHum = { oscillator, gain };
-}
-
-function stopDroneHum() {
-  if (!droneHum || !missionAudioContext) {
-    droneHum = null;
-    return;
-  }
-  const { oscillator, gain } = droneHum;
-  const stopTime = missionAudioContext.currentTime + 0.12;
-  try {
-    gain.gain.cancelScheduledValues(missionAudioContext.currentTime);
-    gain.gain.setValueAtTime(Math.max(gain.gain.value, 0.001), missionAudioContext.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, stopTime);
-    oscillator.stop(stopTime + 0.02);
-  } catch (error) {
-    // Audio nodes may already be stopped if the browser interrupts playback.
-  }
-  droneHum = null;
-}
-
-function playCrashSound() {
-  unlockMissionAudio();
-  stopDroneHum();
-  playTone(150, 0, 0.12, 0.18);
-  playTone(92, 0.1, 0.18, 0.16);
-  playTone(55, 0.24, 0.26, 0.14);
-}
-
-function playSuccessSound(type) {
-  unlockMissionAudio();
-  if (type === "sample") {
-    playTone(660, 0, 0.12, 0.13);
-    playTone(880, 0.12, 0.16, 0.11);
-    return;
-  }
-  if (type === "photo") {
-    playTone(988, 0, 0.08, 0.1);
-    playTone(1319, 0.08, 0.08, 0.08);
-    return;
-  }
-  if (type === "mission") {
-    playTone(523, 0, 0.1, 0.12);
-    playTone(659, 0.1, 0.1, 0.12);
-    playTone(784, 0.2, 0.2, 0.13);
-    return;
-  }
-  playTone(740, 0, 0.1, 0.1);
-  playTone(988, 0.1, 0.12, 0.09);
-}
-
 function startProgram() {
   if (!isStudentUser()) {
     updateFeedback("Sign in with a student account to run missions and save progress.", "Login Required", "chip-bad");
     return;
   }
   try {
-    unlockMissionAudio();
-    stopDroneHum();
     const parsedProgram = parseProgram(codeEditor.value);
+    validateMissionCommandRequirements(parsedProgram.commands);
     state.animationQueue = buildAnimationQueue(parsedProgram.commands);
     state.drone = getInitialDrone();
     state.currentStep = null;
@@ -2173,24 +2139,23 @@ function startProgram() {
     state.playing = true;
     state.visitedCheckpoints = new Set();
     state.collectedSamples = new Set();
-    state.photographedAnimals = new Set();
+    state.collectedLandSamples = new Set();
+    state.capturedPhotos = new Set();
     state.trail = [{ x: state.drone.x, y: state.drone.y }];
     state.currentMissionSuccess = false;
     renderCommandPreview(parsedProgram.commands);
     updateHud();
     renderMissionPanel();
     updateFeedback("Program accepted. The mission simulation is running.", "Running", "chip-warn");
+    startDroneHum();
   } catch (error) {
-    stopDroneHum();
     state.playing = false;
     state.animationQueue = [];
     state.currentStep = null;
     state.currentMissionSuccess = false;
+    stopDroneHum();
     renderMissionPanel();
     updateFeedback(error.message, "Error", "chip-bad");
-    if (error.message.includes("exits the mission flight area")) {
-      playCrashSound();
-    }
   }
 }
 
@@ -2211,7 +2176,6 @@ function stepAnimation(timestamp) {
       const nextStep = state.animationQueue.shift();
       if (nextStep.type === "altitude" && nextStep.targetAltitude > 0) {
         state.drone.airborne = true;
-        startDroneHum();
       }
       state.currentStep = { ...nextStep, elapsed: 0, startX: state.drone.x, startY: state.drone.y, startAltitude: state.drone.altitude, startHeading: state.drone.heading };
       updateFeedback(`Executing: ${nextStep.label}`, "Running", "chip-warn");
@@ -2239,7 +2203,7 @@ function stepAnimation(timestamp) {
       state.currentMissionSuccess = evaluateMissionSuccess();
       if (state.currentMissionSuccess) {
         recordMissionCompletion();
-        playSuccessSound("mission");
+        playSuccessTone("mission");
       }
       renderMissionPanel();
       updateFeedback(
@@ -2284,28 +2248,24 @@ function finalizeStep(step) {
   if (step.type === "altitude") {
     state.drone.altitude = step.targetAltitude;
     state.drone.airborne = step.targetAltitude > 0;
-    if (!state.drone.airborne) {
-      stopDroneHum();
-    }
   }
   if (step.type === "rotate") {
     state.drone.heading = step.targetHeading;
   }
   if (step.type === "sample") {
-    const alreadyCollected = state.collectedSamples.has(step.sampleLabel);
     state.collectedSamples.add(step.sampleLabel);
     state.drone.sampleFlashMs = 2000;
-    if (!alreadyCollected) {
-      playSuccessSound("sample");
-    }
+    playSuccessTone("sample");
+  }
+  if (step.type === "landSample") {
+    state.collectedLandSamples.add(step.sampleLabel);
+    state.drone.sampleFlashMs = 2000;
+    playSuccessTone("sample");
   }
   if (step.type === "photo") {
-    const alreadyPhotographed = state.photographedAnimals.has(step.photoLabel);
-    state.photographedAnimals.add(step.photoLabel);
-    state.drone.photoFlashMs = 1600;
-    if (!alreadyPhotographed) {
-      playSuccessSound("photo");
-    }
+    state.capturedPhotos.add(step.photoLabel);
+    state.drone.photoFlashMs = 700;
+    playSuccessTone("photo");
   }
   detectCheckpointHits();
   updateHud();
@@ -2317,7 +2277,7 @@ function detectCheckpointHits() {
     const distance = Math.hypot(state.drone.x - checkpoint.x, state.drone.y - checkpoint.y);
     if (state.drone.airborne && distance <= checkpoint.radius + 16 && !state.visitedCheckpoints.has(checkpoint.id)) {
       state.visitedCheckpoints.add(checkpoint.id);
-      playSuccessSound("checkpoint");
+      playSuccessTone("checkpoint");
     }
   });
   renderMissionPanel();
@@ -2333,17 +2293,19 @@ function detectNoFlyCollision() {
 }
 
 function crashDrone() {
-  playCrashSound();
   state.playing = false;
   state.animationQueue = [];
   state.currentStep = null;
   state.currentMissionSuccess = false;
   state.visitedCheckpoints = new Set();
   state.collectedSamples = new Set();
-  state.photographedAnimals = new Set();
+  state.collectedLandSamples = new Set();
+  state.capturedPhotos = new Set();
   state.trail = [];
   state.drone = getInitialDrone();
   state.lastTime = 0;
+  stopDroneHum();
+  playSuccessTone("crash");
   updateHud();
   renderMissionPanel();
   updateFeedback("The drone crashed in a no-fly zone and restarted at the launch pad. Adjust the code and try again.", "Crash", "chip-bad");
@@ -2352,8 +2314,9 @@ function crashDrone() {
 function evaluateMissionSuccess() {
   const allVisited = getMission().checkpoints.every((checkpoint) => state.visitedCheckpoints.has(checkpoint.id));
   const allSamplesCollected = (getMission().sampleRequirements ?? []).every((sample) => state.collectedSamples.has(sample.label));
-  const allPhotosTaken = (getMission().photoRequirements ?? []).every((photo) => state.photographedAnimals.has(photo.label));
-  return allVisited && allSamplesCollected && allPhotosTaken && isOnLaunchPad() && !state.drone.airborne && state.drone.altitude === 0;
+  const allLandSamplesCollected = (getMission().landSampleRequirements ?? []).every((sample) => state.collectedLandSamples.has(sample.label));
+  const allPhotosCaptured = (getMission().photoRequirements ?? []).every((photo) => state.capturedPhotos.has(photo.label));
+  return allVisited && allSamplesCollected && allLandSamplesCollected && allPhotosCaptured && isOnLaunchPad() && !state.drone.airborne && state.drone.altitude === 0;
 }
 
 function isOnLaunchPad() {
@@ -2367,6 +2330,7 @@ function drawScene(timestamp) {
   drawGrid();
   drawDecorations(timestamp);
   drawColorZones();
+  drawLandSampleTargets();
   drawPhotoTargets(timestamp);
   drawNoFlyZones();
   drawLaunchPad();
@@ -2515,27 +2479,41 @@ function drawColorZones() {
   });
 }
 
-function drawPhotoTargets(timestamp) {
-  (getMission().photoRequirements ?? []).forEach((photo, index) => {
-    const complete = state.photographedAnimals.has(photo.label);
-    const pulse = 1 + Math.sin(timestamp / 260 + index) * 0.1;
+function drawLandSampleTargets() {
+  (getMission().landSampleRequirements ?? []).forEach((sample) => {
+    if (typeof sample.x !== "number" || typeof sample.y !== "number") return;
+    const radius = sample.radius ?? 46;
+    const complete = state.collectedLandSamples.has(sample.label);
     ctx.beginPath();
-    ctx.fillStyle = complete ? "rgba(173, 247, 111, 0.2)" : "rgba(255, 255, 255, 0.12)";
-    ctx.arc(photo.x, photo.y, photo.radius * pulse, 0, Math.PI * 2);
+    ctx.fillStyle = complete ? "rgba(173, 247, 111, 0.18)" : "rgba(142, 105, 70, 0.28)";
+    ctx.arc(sample.x, sample.y, radius, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = complete ? getCampaign().rotorColor : "#ffd78c";
+    ctx.strokeStyle = complete ? "#adf76f" : "#c09362";
     ctx.lineWidth = 2;
     ctx.stroke();
-    ctx.fillStyle = complete ? getCampaign().rotorColor : "#ffd78c";
+    ctx.fillStyle = "#fff3dc";
+    ctx.font = "700 13px Chakra Petch";
+    ctx.fillText(sample.label.toUpperCase(), sample.x - radius + 8, sample.y + 5);
+  });
+}
+
+function drawPhotoTargets(timestamp) {
+  (getMission().photoRequirements ?? []).forEach((target, index) => {
+    const radius = target.radius ?? 44;
+    const pulse = 1 + Math.sin(timestamp / 320 + index) * 0.08;
+    const complete = state.capturedPhotos.has(target.label);
     ctx.beginPath();
-    ctx.arc(photo.x, photo.y, 12, 0, Math.PI * 2);
+    ctx.fillStyle = complete ? "rgba(173, 247, 111, 0.18)" : "rgba(255, 255, 255, 0.1)";
+    ctx.arc(target.x, target.y, radius * pulse, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "#09161e";
-    ctx.font = "700 14px Chakra Petch";
-    ctx.fillText("A", photo.x - 5, photo.y + 5);
-    ctx.fillStyle = "#eef8ff";
+    ctx.strokeStyle = complete ? "#adf76f" : "#eff9ff";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = complete ? "#adf76f" : "#eff9ff";
+    ctx.font = "700 22px Chakra Petch";
+    ctx.fillText("CAM", target.x - 22, target.y + 8);
     ctx.font = "700 12px Chakra Petch";
-    ctx.fillText(photo.animal.toUpperCase(), photo.x + 18, photo.y - 14);
+    ctx.fillText(target.label.toUpperCase(), target.x - radius + 4, target.y + radius + 18);
   });
 }
 
@@ -2601,7 +2579,7 @@ function drawDrone(timestamp) {
   ctx.fillStyle = campaign.droneColor;
   roundedRect(-24, -14, 48, 28, 10);
   ctx.fill();
-  ctx.fillStyle = state.drone.photoFlashMs > 0 ? "#ffd78c" : state.drone.sampleFlashMs > 0 ? "#74e26f" : "#eff9ff";
+  ctx.fillStyle = state.drone.sampleFlashMs > 0 ? "#74e26f" : state.drone.photoFlashMs > 0 ? "#ffe880" : "#eff9ff";
   roundedRect(-12, -8, 24, 16, 6);
   ctx.fill();
   drawRotor(-28, -20, rotorSpin, campaign.rotorColor);
@@ -2666,8 +2644,8 @@ function getShortestTurn(start, end) {
 runButton.addEventListener("click", startProgram);
 resetButton.addEventListener("click", resetDrone);
 exampleButton.addEventListener("click", () => {
-  if (!isIntroExampleMission()) {
-    updateFeedback("Examples are only available on the first mission. Write your own program for this challenge.", "Student Code", "chip-calm");
+  if (!isExampleAvailableForMission()) {
+    updateFeedback("Examples are only available on Mission 1 of each flight level.", "No Example", "chip-warn");
     return;
   }
   loadMissionEditor();
@@ -2691,18 +2669,25 @@ studentMissionSelect.addEventListener("change", () => {
   state.selectedStudentMissionKey = studentMissionSelect.value;
   switchStudentMissionByKey(studentMissionSelect.value);
 });
-certificateActions.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-certificate-type]");
-  if (!button) {
+rankCertificatesPanel.addEventListener("click", async (event) => {
+  const button = event.target.closest(".rank-certificate-button");
+  if (!(button instanceof HTMLButtonElement)) {
     return;
   }
-  const certificate = getAvailableCertificates().find((entry) =>
-    entry.type === button.dataset.certificateType && entry.levelKey === button.dataset.certificateLevel
-  );
-  if (!certificate) {
-    return;
+  const originalLabel = button.textContent;
+  button.disabled = true;
+  button.textContent = "Preparing PDF...";
+  try {
+    await downloadRankCertificate(button.dataset.levelKey ?? "");
+  } catch (_error) {
+    updateFeedback("The certificate could not be generated right now. Please try again.", "Certificate", "chip-warn");
+  } finally {
+    button.disabled = false;
+    button.textContent = originalLabel;
   }
-  downloadCertificate(certificate);
+});
+printCertificateButton.addEventListener("click", () => {
+  window.print();
 });
 
 loadAccounts();

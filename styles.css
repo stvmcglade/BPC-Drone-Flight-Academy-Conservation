@@ -127,13 +127,53 @@ select {
   padding: 24px;
   display: grid;
   grid-template-columns: 360px minmax(0, 1fr);
-  grid-template-rows: auto auto;
   gap: 24px;
 }
 
 .app-shell.teacher-mode {
   grid-template-columns: 1fr;
   max-width: 980px;
+}
+
+.app-shell.student-layout {
+  grid-template-columns: minmax(320px, 360px) minmax(0, 1fr);
+  align-items: start;
+}
+
+.app-shell.student-layout .sidebar {
+  display: contents;
+}
+
+.app-shell.student-layout .hero-panel {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  min-height: 140px;
+}
+
+.app-shell.student-layout .hero-panel .school-brand {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.app-shell.student-layout .hero-panel .school-logo {
+  width: clamp(190px, 22vw, 310px);
+}
+
+.app-shell.student-layout .hero-panel .lede {
+  max-width: 620px;
+}
+
+.app-shell.student-layout .account-panel,
+.app-shell.student-layout .mission-panel,
+.app-shell.student-layout .tips-panel {
+  grid-column: 1;
+}
+
+.app-shell.student-layout .main-column {
+  grid-column: 2;
+  grid-row: 2 / span 4;
 }
 
 .app-shell.teacher-mode .sidebar {
@@ -144,34 +184,6 @@ select {
 
 .app-shell.teacher-mode .teacher-panel {
   margin-top: 0;
-}
-
-.app-header {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 22px;
-  padding: 18px 24px;
-  border: 1px solid var(--panel-border);
-  background:
-    radial-gradient(circle at top right, var(--theme-glow), transparent 32%),
-    linear-gradient(180deg, rgba(8, 28, 43, 0.98), rgba(12, 37, 58, 0.96));
-  backdrop-filter: blur(16px);
-  border-radius: 28px;
-  box-shadow: var(--shadow);
-}
-
-.app-header .school-brand {
-  margin: 0;
-}
-
-.app-header .school-logo {
-  width: clamp(180px, 22vw, 280px);
-}
-
-.app-header .lede {
-  margin: 0;
 }
 
 .sidebar,
@@ -189,6 +201,7 @@ select {
   box-shadow: var(--shadow);
 }
 
+.hero-panel,
 .account-panel,
 .mission-panel,
 .commands-panel,
@@ -197,6 +210,12 @@ select {
 .simulator-panel,
 .editor-panel {
   padding: 24px;
+}
+
+.hero-panel {
+  background:
+    radial-gradient(circle at top right, var(--theme-glow), transparent 32%),
+    linear-gradient(180deg, rgba(8, 28, 43, 0.98), rgba(12, 37, 58, 0.96));
 }
 
 .eyebrow {
@@ -232,8 +251,13 @@ h3 {
 .lede,
 .panel-copy,
 .feedback-text,
-.command-list {
+.command-list,
+.command-preview {
   line-height: 1.6;
+}
+
+.hero-panel .school-brand {
+  margin-bottom: 14px;
 }
 
 .entry-card .school-brand {
@@ -355,24 +379,44 @@ code {
   margin-top: 16px;
 }
 
-.simulator-workspace {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(190px, 220px);
-  gap: 12px;
-  align-items: start;
-  margin-top: 18px;
-}
-
 .simulator-stage {
   position: relative;
-  display: flex;
-  flex-direction: column;
   border-radius: 24px;
   overflow: hidden;
   background:
     linear-gradient(180deg, rgba(88, 197, 255, 0.3), rgba(7, 22, 36, 0) 26%),
     linear-gradient(180deg, #0e2536, #14324a 38%, #173349 38%, #10273a 100%);
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.simulator-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 220px);
+  gap: 14px;
+  align-items: stretch;
+  margin-top: 18px;
+}
+
+.simulator-feedback-card {
+  align-self: stretch;
+  padding: 14px;
+}
+
+.simulator-feedback-card .panel-heading {
+  gap: 10px;
+}
+
+.simulator-feedback-card h3 {
+  font-size: 0.95rem;
+}
+
+.simulator-feedback-card .chip {
+  padding: 7px 10px;
+  font-size: 0.78rem;
+}
+
+.simulator-feedback-card .feedback-text {
+  font-size: 0.92rem;
 }
 
 body[data-theme="second_officer"] .simulator-stage {
@@ -400,32 +444,26 @@ body[data-theme="captain"] .simulator-stage {
 }
 
 .hud-card {
-  position: static;
-  order: -1;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-  padding: 10px 12px;
-  background: rgba(5, 16, 27, 0.86);
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(5, 16, 27, 0.84);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  z-index: 2;
 }
 
 .hud-label {
   display: block;
   color: var(--text-muted);
-  font-size: 0.68rem;
+  font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .hud-card strong {
   display: block;
-  font-size: 0.88rem;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .legend {
@@ -456,12 +494,12 @@ body[data-theme="captain"] .simulator-stage {
   background: var(--lime);
 }
 
-.animal-marker {
-  background: #ffd78c;
-}
-
 .sensor-zone {
   background: #aab4bf;
+}
+
+.photo-target {
+  background: #ffe880;
 }
 
 .no-fly {
@@ -512,66 +550,82 @@ select option {
   margin-top: 16px;
 }
 
-.role-progress-card {
+.role-progress-panel {
   display: grid;
   gap: 10px;
-  padding: 12px 14px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-muted);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin: 16px 0;
 }
 
-.role-progress-card.complete {
-  border-color: rgba(173, 247, 111, 0.36);
+.role-progress-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.role-progress-row.complete {
+  border-color: rgba(173, 247, 111, 0.35);
   background: rgba(173, 247, 111, 0.08);
 }
 
-.role-progress-card strong {
-  color: var(--text-main);
+.mission-stars {
+  margin-top: 4px;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 1.2rem;
 }
 
-.role-award {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.role-stars {
-  display: inline-flex;
-  gap: 4px;
-  font-size: 1.35rem;
-  line-height: 1;
-}
-
-.role-star {
-  color: rgba(255, 255, 255, 0.28);
-}
-
-.role-star.filled {
+.mission-star.filled {
   color: var(--amber);
-  text-shadow: 0 0 14px rgba(255, 216, 108, 0.36);
+  text-shadow: 0 0 16px rgba(255, 200, 108, 0.5);
 }
 
 .role-badge {
-  display: inline-flex;
-  align-items: center;
-  min-height: 28px;
-  padding: 5px 9px;
-  border-radius: 8px;
-  background: rgba(173, 247, 111, 0.14);
-  color: var(--lime);
-  border: 1px solid rgba(173, 247, 111, 0.28);
-  font-size: 0.8rem;
+  flex: 0 0 auto;
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text-muted);
+  font-size: 0.78rem;
   font-weight: 700;
 }
 
-.role-badge.clear {
-  background: rgba(255, 255, 255, 0.05);
+.role-badge.earned {
+  background: linear-gradient(180deg, var(--amber), #d99b3d);
+  color: #211303;
+  box-shadow: 0 0 18px rgba(255, 200, 108, 0.25);
+}
+
+.rank-certificates-panel {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 16px;
+}
+
+.rank-certificate-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 216, 108, 0.18);
+  background:
+    radial-gradient(circle at top right, rgba(255, 216, 108, 0.12), transparent 34%),
+    rgba(255, 255, 255, 0.05);
+}
+
+.rank-certificate-card strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.rank-certificate-card div:last-child {
   color: var(--text-muted);
-  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .teacher-dashboard {
@@ -599,15 +653,11 @@ select option {
   margin-bottom: 10px;
 }
 
-.certificate-actions {
-  display: grid;
-  gap: 10px;
-  margin-top: 14px;
-}
-
-.certificate-download-button {
-  width: 100%;
-  justify-content: center;
+@media (max-width: 780px) {
+  .rank-certificate-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 
 .teacher-student-card {
@@ -717,12 +767,6 @@ button:hover {
   filter: brightness(1.04);
 }
 
-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.46;
-  filter: grayscale(0.35);
-}
-
 .secondary-button {
   background: linear-gradient(180deg, var(--cyan), #30b7f0);
 }
@@ -754,33 +798,28 @@ textarea {
   line-height: 1.6;
 }
 
+.feedback-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 18px;
+}
+
 .feedback-card {
-  padding: 14px;
+  padding: 18px;
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.feedback-card .panel-heading {
-  gap: 10px;
+.command-preview {
+  margin: 14px 0 0;
+  padding-left: 20px;
+  color: var(--text-muted);
 }
 
-.feedback-card .panel-heading h3 {
-  font-size: 0.98rem;
-}
-
-.simulator-feedback {
-  position: sticky;
-  top: 18px;
-}
-
-.simulator-feedback .chip {
-  padding: 7px 10px;
-  font-size: 0.8rem;
-}
-
-.feedback-text {
-  margin-bottom: 0;
+.command-preview li + li {
+  margin-top: 8px;
 }
 
 @media (max-width: 1120px) {
@@ -788,12 +827,34 @@ textarea {
     grid-template-columns: 1fr;
   }
 
-  .simulator-workspace {
+  .app-shell.student-layout {
     grid-template-columns: 1fr;
   }
 
-  .simulator-feedback {
-    position: static;
+  .app-shell.student-layout .sidebar {
+    display: flex;
+  }
+
+  .app-shell.student-layout .hero-panel,
+  .app-shell.student-layout .account-panel,
+  .app-shell.student-layout .mission-panel,
+  .app-shell.student-layout .tips-panel,
+  .app-shell.student-layout .main-column {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .app-shell.student-layout .hero-panel {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .simulator-body {
+    grid-template-columns: 1fr;
+  }
+
+  .simulator-feedback-card {
+    order: -1;
   }
 }
 
@@ -808,12 +869,6 @@ textarea {
     align-items: flex-start;
   }
 
-  .app-header {
-    grid-template-columns: 1fr;
-    gap: 14px;
-    padding: 18px;
-  }
-
   .panel {
     border-radius: 22px;
   }
@@ -821,6 +876,10 @@ textarea {
   .panel-heading,
   .editor-header {
     flex-direction: column;
+  }
+
+  .feedback-grid {
+    grid-template-columns: 1fr;
   }
 
   .hud-card {
